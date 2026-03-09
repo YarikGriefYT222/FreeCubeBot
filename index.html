@@ -2,303 +2,159 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>FreeCube System</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visuals Roulette</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        :root {
-            --accent: #00ffcc;
-            --admin-color: #ff4444;
-            --bg: #0a0a0a;
-            --card-bg: #161616;
-            --text: #ffffff;
-        }
+        :root { --gold: #ffd700; --blue: #0088cc; --green: #2ecc71; --bg: #0f0f0f; }
+        body { background: var(--bg); color: white; font-family: 'Segoe UI', Tahoma, sans-serif; margin: 0; display: flex; flex-direction: column; align-items: center; }
+        
+        /* Профиль */
+        .profile-card { background: #1a1a1a; width: 90%; margin: 20px 0; padding: 15px; border-radius: 15px; border: 1px solid #333; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+        .stats { display: flex; justify-content: space-around; font-size: 14px; margin-bottom: 10px; }
+        .stat-val { color: var(--gold); font-weight: bold; display: block; font-size: 18px; }
+        .reset-btn { background: transparent; border: 1px solid #444; color: #777; padding: 5px 10px; border-radius: 5px; cursor: pointer; font-size: 11px; }
 
-        body {
-            background-color: var(--bg);
-            color: var(--text);
-            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-            margin: 0;
-            padding-bottom: 90px;
-        }
+        /* Рулетка */
+        .roulette-box { position: relative; width: 320px; height: 120px; border: 3px solid #333; border-radius: 12px; overflow: hidden; background: #000; margin: 20px 0; }
+        .pointer { position: absolute; left: 50%; top: 0; bottom: 0; width: 3px; background: red; z-index: 5; transform: translateX(-50%); box-shadow: 0 0 10px red; }
+        .tape { display: flex; position: absolute; left: 0; top: 0; transition: transform 5s cubic-bezier(0.1, 0, 0.1, 1); }
+        .slot { min-width: 80px; height: 120px; display: flex; flex-direction: column; align-items: center; justify-content: center; border-right: 1px solid #111; font-size: 10px; font-weight: bold; text-align: center; }
 
-        .page { display: none; padding: 20px; box-sizing: border-box; }
-        .page.active { display: block; }
+        /* Цвета предметов */
+        .win-year { background: linear-gradient(45deg, #443a00, #ffd700); color: black; }
+        .win-month { background: linear-gradient(45deg, #001f3f, #0088cc); }
+        .win-week { background: linear-gradient(45deg, #0a2e16, #2ecc71); }
+        .win-null { background: #222; color: #555; }
 
-        .card {
-            background: var(--card-bg);
-            border-radius: 14px;
-            padding: 16px;
-            margin-bottom: 15px;
-            border: 1px solid #222;
-        }
-
-        .balance-val { font-size: 32px; font-weight: 800; color: var(--accent); text-align: center; }
-
-        h2 { color: var(--accent); font-size: 20px; text-transform: uppercase; margin-bottom: 15px; }
-        h3 { margin-top: 0; font-size: 16px; margin-bottom: 10px; }
-
-        input {
-            width: 100%;
-            padding: 12px;
-            margin: 8px 0;
-            background: #222;
-            border: 1px solid #333;
-            color: white;
-            border-radius: 8px;
-            box-sizing: border-box;
-            outline: none;
-        }
-
-        .btn {
-            width: 100%;
-            padding: 14px;
-            background: var(--accent);
-            color: #000;
-            border: none;
-            border-radius: 8px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: 0.2s;
-        }
-
-        .btn:active { transform: scale(0.98); }
-        .btn-admin { background: var(--admin-color); color: white; }
-
-        .nav-bar {
-            position: fixed; bottom: 0; width: 100%; height: 65px;
-            background: #111; border-top: 1px solid #222;
-            display: flex; justify-content: space-around; align-items: center;
-            z-index: 1000;
-        }
-
-        .nav-item { color: #555; text-align: center; font-size: 11px; cursor: pointer; flex: 1; }
-        .nav-item.active { color: var(--accent); }
-        .nav-icon { font-size: 20px; display: block; margin-bottom: 2px; }
-
-        .task-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-left: 4px solid var(--accent);
-        }
-
-        .reward-badge { color: var(--accent); font-weight: bold; }
+        .spin-button { background: var(--gold); color: black; border: none; padding: 18px 40px; font-size: 20px; font-weight: 800; border-radius: 50px; cursor: pointer; box-shadow: 0 0 20px rgba(255, 215, 0, 0.3); transition: 0.3s; width: 80%; }
+        .spin-button:disabled { background: #444; color: #888; transform: scale(0.95); box-shadow: none; }
     </style>
 </head>
 <body>
 
-    <div id="page-profile" class="page active">
-        <h2>Профиль</h2>
-        <div class="card">
-            <p>Ваш ID: <b id="u-id">...</b></p>
-            <div class="balance-val" id="balance-display">0</div>
-            <p style="text-align: center; font-size: 12px; color: #888;">очков баланса</p>
+    <div class="profile-card">
+        <div class="stats">
+            <div>Траты: <span class="stat-val" id="totalSpent">0 ⭐</span></div>
+            <div>Побед: <span class="stat-val" id="winCount">0</span></div>
         </div>
-
-        <div class="card">
-            <h3>💸 Перевод игроку</h3>
-            <input type="number" id="transfer-id" placeholder="ID получателя">
-            <input type="number" id="transfer-amt" placeholder="Сумма">
-            <button class="btn" onclick="sendTransfer()">Перевести</button>
-        </div>
-
-        <div id="admin-panel" class="card" style="display:none; border: 2px solid var(--admin-color);">
-            <h3 style="color: var(--admin-color);">⚡ ПАНЕЛЬ ВЛАДЕЛЬЦА</h3>
-            
-            <p style="font-size: 13px;"><b>Выдать очки по ID:</b></p>
-            <input type="number" id="adm-target-id" placeholder="ID игрока">
-            <input type="number" id="adm-amt" placeholder="Сумма">
-            <button class="btn btn-admin" onclick="adminGive()">Начислить</button>
-            
-            <hr style="border: 0; border-top: 1px solid #333; margin: 15px 0;">
-            
-            <p style="font-size: 13px;"><b>Создать новое задание:</b></p>
-            <input type="text" id="new-task-title" placeholder="Название (например: Подписка)">
-            <input type="number" id="new-task-reward" placeholder="Награда (очков)">
-            <button class="btn" style="background: #fff;" onclick="createTask()">Опубликовать задание</button>
-        </div>
+        <button class="reset-btn" onclick="resetStats()">Обнулить профиль</button>
     </div>
 
-    <div id="page-shop" class="page">
-        <h2>Магазин</h2>
-        <div class="card">
-            <b>📦 Донат Кейс</b><br>
-            <span class="reward-badge">2500 pts</span>
-            <button class="btn" style="margin-top: 10px;" onclick="buyItem(2500, 'Донат Кейс')">Купить</button>
-        </div>
-        <div class="card">
-            <b>💎 Донат за 399₽</b><br>
-            <span class="reward-badge">5000 pts</span>
-            <button class="btn" style="margin-top: 10px;" onclick="buyItem(5000, 'Донат за 399₽')">Купить</button>
-        </div>
-        <div class="card">
-            <b>⚔️ ПВП Кит</b><br>
-            <span class="reward-badge">500 pts</span>
-            <button class="btn" style="margin-top: 10px;" onclick="buyItem(500, 'ПВП Кит')">Купить</button>
-        </div>
-        <div class="card">
-            <b>🛡️ Кит ПВЕ</b><br>
-            <span class="reward-badge">450 pts</span>
-            <button class="btn" style="margin-top: 10px;" onclick="buyItem(450, 'Кит ПВЕ')">Купить</button>
-        </div>
+    <div class="roulette-box">
+        <div class="pointer"></div>
+        <div id="tape" class="tape"></div>
     </div>
 
-    <div id="page-tasks" class="page">
-        <h2>Доступные задания</h2>
-        <div id="tasks-list">
-            <p style="text-align: center; color: #555;">Загрузка списка...</p>
-        </div>
-    </div>
-
-    <nav class="nav-bar">
-        <div class="nav-item active" onclick="nav('page-profile', this)"><span class="nav-icon">👤</span>Профиль</div>
-        <div class="nav-item" onclick="nav('page-shop', this)"><span class="nav-icon">🛒</span>Магазин</div>
-        <div class="nav-item" onclick="nav('page-tasks', this)"><span class="nav-icon">🎯</span>Задания</div>
-    </nav>
+    <button id="spinBtn" class="spin-button" onclick="handlePayment()">КРУТИТЬ ЗА 15 ⭐</button>
+    <p id="msg" style="color: #888; margin-top: 15px;"></p>
 
     <script>
         const tg = window.Telegram.WebApp;
-        const OWNER_ID = 6086871004;
-        let balance = 0;
-        let globalTasks = [];
-
         tg.expand();
         tg.ready();
 
-        const user = tg.initDataUnsafe.user;
-        if (user) {
-            document.getElementById('u-id').innerText = user.id;
-            if (user.id === OWNER_ID) document.getElementById('admin-panel').style.display = 'block';
-        }
-
-        // Загрузка данных
-        function loadData() {
-            tg.CloudStorage.getItem('balance', (err, val) => {
-                if (!err && val) balance = parseInt(val);
-                updateUI();
-            });
-
-            tg.CloudStorage.getItem('global_tasks', (err, val) => {
-                if (!err && val) globalTasks = JSON.parse(val);
-                renderTasks();
-            });
-        }
+        let spent = parseInt(localStorage.getItem('spent')) || 0;
+        let wins = parseInt(localStorage.getItem('wins')) || 0;
 
         function updateUI() {
-            document.getElementById('balance-display').innerText = balance.toLocaleString();
-            tg.CloudStorage.setItem('balance', balance.toString());
+            document.getElementById('totalSpent').innerText = spent + " ⭐";
+            document.getElementById('winCount').innerText = wins;
         }
 
-        function saveData() {
-            tg.CloudStorage.setItem('global_tasks', JSON.stringify(globalTasks));
+        const itemsData = [
+            { label: 'ГОД', class: 'win-year', chance: 30 },    // 3% (30 из 1000)
+            { label: '30 ДНЕЙ', class: 'win-month', chance: 50 }, // 5%
+            { label: '7 ДНЕЙ', class: 'win-week', chance: 70 },   // 7%
+            { label: 'ПУСТО', class: 'win-null', chance: 850 }    // 85%
+        ];
+
+        function createSlot(data) {
+            const div = document.createElement('div');
+            div.className = `slot ${data.class}`;
+            div.innerHTML = `<span>VISUALS</span><br><b>${data.label}</b>`;
+            return div;
         }
 
-        // --- ЛОГИКА ЗАДАНИЙ ---
-
-        function createTask() {
-            const title = document.getElementById('new-task-title').value;
-            const reward = parseInt(document.getElementById('new-task-reward').value);
-
-            if (!title || !reward) return alert("Введите название и сумму!");
-
-            const newTask = { id: Date.now(), title: title, reward: reward };
-            globalTasks.push(newTask);
-            
-            saveData();
-            renderTasks();
-            
-            // Очистка полей
-            document.getElementById('new-task-title').value = '';
-            document.getElementById('new-task-reward').value = '';
-
-            // Уведомление боту
-            tg.sendData(JSON.stringify({
-                type: "NEW_TASK",
-                text: `Админ создал задание: ${title} за ${reward} очков`
-            }));
-            
-            alert("Задание опубликовано!");
-        }
-
-        function renderTasks() {
-            const list = document.getElementById('tasks-list');
-            if (globalTasks.length === 0) {
-                list.innerHTML = '<p style="text-align: center; color: #555; padding: 20px;">Заданий пока нет</p>';
-                return;
+        function initTape() {
+            const tape = document.getElementById('tape');
+            tape.innerHTML = '';
+            for(let i=0; i<100; i++) {
+                const randomItem = itemsData[Math.floor(Math.random() * itemsData.length)];
+                tape.appendChild(createSlot(randomItem));
             }
-
-            list.innerHTML = globalTasks.map(t => `
-                <div class="card task-item">
-                    <div>
-                        <b>${t.title}</b><br>
-                        <span class="reward-badge">+${t.reward} pts</span>
-                    </div>
-                    <button class="btn" style="width: auto; padding: 8px 15px;" onclick="completeTask(${t.id}, ${t.reward})">Выполнить</button>
-                </div>
-            `).join('');
         }
 
-        function completeTask(taskId, reward) {
-            balance += reward;
-            globalTasks = globalTasks.filter(t => t.id !== taskId);
+        async function handlePayment() {
+            // ВАЖНО: В реальном Telegram Web App вызов платежа идет через API бота (метод createInvoiceLink)
+            // Здесь мы имитируем процесс оплаты для визуализации
+            tg.showConfirm("Вы подтверждаете оплату 15 ⭐?", (confirmed) => {
+                if(confirmed) {
+                    spent += 15;
+                    localStorage.setItem('spent', spent);
+                    updateUI();
+                    startSpin();
+                }
+            });
+        }
+
+        function startSpin() {
+            const btn = document.getElementById('spinBtn');
+            const tape = document.getElementById('tape');
+            btn.disabled = true;
+
+            // Расчет результата
+            const rng = Math.floor(Math.random() * 1000);
+            let result;
+            if (rng < 30) result = itemsData[0]; // Год
+            else if (rng < 80) result = itemsData[1]; // Месяц
+            else if (rng < 150) result = itemsData[2]; // Неделя
+            else result = itemsData[3]; // Пусто
+
+            // Подменяем 80-й элемент (на него приземлится стрелка)
+            const targetIdx = 80;
+            const targetSlot = tape.children[targetIdx];
+            targetSlot.className = `slot ${result.class}`;
+            targetSlot.innerHTML = `<span>VISUALS</span><br><b>${result.label}</b>`;
+
+            // Анимация
+            const slotWidth = 80;
+            const finalPos = (targetIdx * slotWidth) - (160 - slotWidth/2);
+            const randomOffset = Math.floor(Math.random() * 50) - 25;
             
-            updateUI();
-            saveData();
-            renderTasks();
+            tape.style.transition = 'none';
+            tape.style.transform = `translateX(0px)`;
+            
+            setTimeout(() => {
+                tape.style.transition = 'transform 5s cubic-bezier(0.1, 0, 0.1, 1)';
+                tape.style.transform = `translateX(-${finalPos + randomOffset}px)`;
+            }, 50);
 
-            tg.HapticFeedback.notificationOccurred('success');
-            alert(`Задание выполнено! Вам начислено ${reward} очков.`);
+            setTimeout(() => {
+                if (result.label !== 'ПУСТО') {
+                    wins++;
+                    localStorage.setItem('wins', wins);
+                    tg.showAlert(`🔥 ПОЗДРАВЛЯЕМ! Вы выбили: ${result.label}`);
+                } else {
+                    document.getElementById('msg').innerText = "В этот раз не повезло...";
+                }
+                updateUI();
+                btn.disabled = false;
+                initTape();
+            }, 5500);
         }
 
-        // --- МАГАЗИН И ПЕРЕВОДЫ ---
-
-        function buyItem(price, name) {
-            if (balance < price) return alert("Мало очков!");
-            balance -= price;
-            updateUI();
-
-            const mention = `[${user.id}](tg://user?id=${user.id})`;
-            tg.sendData(JSON.stringify({
-                type: "PURCHASE",
-                text: `Пользователь ${mention} купил ${name} за ${price}`
-            }));
-            alert("Покупка совершена!");
+        function resetStats() {
+            if(confirm("Обнулить все победы и траты?")) {
+                spent = 0;
+                wins = 0;
+                localStorage.clear();
+                updateUI();
+            }
         }
 
-        function sendTransfer() {
-            const targetId = document.getElementById('transfer-id').value;
-            const amt = parseInt(document.getElementById('transfer-amt').value);
-            if (balance < amt) return alert("Мало очков");
-            balance -= amt;
-            updateUI();
-            tg.sendData(JSON.stringify({
-                type: "TRANSFER",
-                text: `Игрок ${user.id} перевел ${amt} pts игроку ${targetId}`
-            }));
-            alert("Перевод отправлен!");
-        }
-
-        function adminGive() {
-            const targetId = document.getElementById('adm-target-id').value;
-            const amt = parseInt(document.getElementById('adm-amt').value);
-            if (targetId == user.id) { balance += amt; updateUI(); }
-            tg.sendData(JSON.stringify({
-                type: "ADMIN_GIVE",
-                text: `Админ выдал ${amt} pts пользователю ${targetId}`
-            }));
-            alert("Очки выданы!");
-        }
-
-        function nav(pageId, el) {
-            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-            document.getElementById(pageId).classList.add('active');
-            el.classList.add('active');
-            tg.HapticFeedback.impactOccurred('light');
-        }
-
-        loadData();
+        updateUI();
+        initTape();
     </script>
 </body>
 </html>
