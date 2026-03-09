@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>FreeCube App</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        :root {
+            --accent: #00ffcc;
+            --admin-color: #ff4444;
+            --bg: #0a0a0a;
+            --card-bg: #161616;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: #ffffff;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding-bottom: 90px;
+            overflow-x: hidden;
+        }
+
+        /* Страницы */
+        .page { display: none; padding: 20px; animation: fadeIn 0.2s ease-in; }
+        .page.active { display: block; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; } to { opacity: 1; }
+        }
+
+        h2 { color: var(--accent); font-size: 1.5em; text-transform: uppercase; margin-bottom: 20px; }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 15px;
+            border: 1px solid #222;
+        }
+
+        .stat-row { display: flex; justify-content: space-between; margin-bottom: 10px; }
+        .label { color: #888; }
+        .value { font-weight: bold; }
+        .accent-val { color: var(--accent); }
+
+        /* Поля ввода и кнопки */
+        input {
+            width: 100%;
+            padding: 14px;
+            margin: 10px 0;
+            background: #222;
+            border: 1px solid #333;
+            color: white;
+            border-radius: 10px;
+            box-sizing: border-box;
+            outline: none;
+        }
+
+        input:focus { border-color: var(--accent); }
+
+        .btn {
+            width: 100%;
+            padding: 14px;
+            background: var(--accent);
+            color: #000;
+            border: none;
+            border-radius: 10px;
+            font-weight: bold;
+            font-size: 1em;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .btn:active { transform: scale(0.98); opacity: 0.8; }
+
+        /* Админка */
+        #admin-section { 
+            border: 1px solid var(--admin-color); 
+            display: none; /* Скрыто по умолчанию */
+        }
+        .admin-title { color: var(--admin-color); margin-top: 0; }
+        .btn-admin { background: var(--admin-color); color: white; }
+
+        /* Навигация */
+        .nav-bar {
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            height: 70px;
+            background: #111;
+            border-top: 1px solid #222;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: #555;
+            text-decoration: none;
+            font-size: 0.7em;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .nav-item.active { color: var(--accent); }
+        .nav-icon { font-size: 1.8em; margin-bottom: 4px; }
+    </style>
+</head>
+<body>
+
+    <div id="page-profile" class="page active">
+        <h2>Профиль</h2>
+        
+        <div class="card">
+            <div class="stat-row">
+                <span class="label">Telegram ID:</span>
+                <span id="tg-id" class="value">загрузка...</span>
+            </div>
+            <div class="stat-row">
+                <span class="label">Имя:</span>
+                <span id="tg-name" class="value">...</span>
+            </div>
+            <div class="stat-row">
+                <span class="label">Баланс:</span>
+                <span id="balance" class="value accent-val">0 pts</span>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>Перевод очков</h3>
+            <input type="number" id="to-id" placeholder="ID получателя">
+            <input type="number" id="to-amount" placeholder="Сумма">
+            <button class="btn" onclick="transfer()">Перевести</button>
+        </div>
+
+        <div id="admin-section" class="card">
+            <h3 class="admin-title">⚡ Админ Панель</h3>
+            <p style="font-size: 0.8em; color: #888;">Выдача очков пользователям</p>
+            <input type="number" id="adm-id" placeholder="ID пользователя">
+            <input type="number" id="adm-val" placeholder="Количество очков">
+            <button class="btn btn-admin" onclick="adminAdd()">Выдать очки</button>
+        </div>
+    </div>
+
+    <div id="page-shop" class="page">
+        <h2>Магазин</h2>
+        <div class="card">
+            <p><b>Префикс [Vip]</b></p>
+            <p class="label">Дает особый статус в клане</p>
+            <p class="accent-val">Цена: 500 pts</p>
+            <button class="btn">Купить</button>
+        </div>
+        <div class="card">
+            <p><b>Разбан ID</b></p>
+            <p class="label">Полная амнистия</p>
+            <p class="accent-val">Цена: 1000 pts</p>
+            <button class="btn">Купить</button>
+        </div>
+    </div>
+
+    <div id="page-tasks" class="page">
+        <h2>Задания</h2>
+        <div class="card" style="text-align: center;">
+            <p>В данный момент заданий нет.</p>
+            <p class="label">Ожидайте обновлений от владельца</p>
+        </div>
+    </div>
+
+    <div class="nav-bar">
+        <div class="nav-item active" onclick="nav('page-profile', this)">
+            <span class="nav-icon">👤</span>
+            <span>Профиль</span>
+        </div>
+        <div class="nav-item" onclick="nav('page-shop', this)">
+            <span class="nav-icon">🛒</span>
+            <span>Магазин</span>
+        </div>
+        <div class="nav-item" onclick="nav('page-tasks', this)">
+            <span class="nav-icon">📝</span>
+            <span>Задания</span>
+        </div>
+    </div>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+
+        // КОНФИГ
+        const OWNER_ID = 6086871004; // Твой ID
+
+        // Получение данных пользователя
+        const user = tg.initDataUnsafe.user;
+        
+        if (user) {
+            document.getElementById('tg-id').innerText = user.id;
+            document.getElementById('tg-name').innerText = user.first_name;
+
+            // ВКЛЮЧЕНИЕ АДМИНКИ ДЛЯ ТЕБЯ
+            if (user.id === OWNER_ID) {
+                document.getElementById('admin-section').style.display = 'block';
+            }
+        } else {
+            document.getElementById('tg-id').innerText = "Open in TG";
+        }
+
+        // Навигация
+        function nav(pageId, el) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            document.getElementById(pageId).classList.add('active');
+            el.classList.add('active');
+            tg.HapticFeedback.impactOccurred('light'); // Виброотклик при нажатии
+        }
+
+        // Функции кнопок
+        function transfer() {
+            let id = document.getElementById('to-id').value;
+            let sum = document.getElementById('to-amount').value;
+            if(!id || !sum) return alert("Заполни все поля!");
+            alert(`Запрос на перевод ${sum} pts пользователю ${id} отправлен.`);
+        }
+
+        function adminAdd() {
+            let id = document.getElementById('adm-id').value;
+            let val = document.getElementById('adm-val').value;
+            if(!id || !val) return alert("Введите данные!");
+            alert(`Успешно! Вы выдали ${val} очков для ID ${id}`);
+        }
+    </script>
+</body>
+</html>
