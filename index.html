@@ -9,125 +9,84 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
-        :root {
-            --accent: #00e5ff;
-            --bg-main: #020202;
-            --surface: #0d0d0d;
-            --text-primary: #ffffff;
-            --text-secondary: #888888;
-            --border: rgba(255, 255, 255, 0.05);
-        }
+        :root { --accent: #00e5ff; --bg-main: #020202; --surface: #0d0d0d; --text-primary: #ffffff; --text-secondary: #888888; --border: rgba(255, 255, 255, 0.05); }
+        body.light-theme { --bg-main: #f0f2f5; --surface: #ffffff; --text-primary: #1a1a1a; --text-secondary: #65676b; --border: rgba(0, 0, 0, 0.1); }
+        body { background: var(--bg-main); color: var(--text-primary); font-family: 'Montserrat', sans-serif; margin: 0; transition: 0.3s; overflow-x: hidden; }
+        
+        /* Заглушка доступа */
+        #access-error { display: none; position: fixed; inset: 0; background: #000; z-index: 9999; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
 
-        body.light-theme {
-            --bg-main: #f0f2f5;
-            --surface: #ffffff;
-            --text-primary: #1a1a1a;
-            --text-secondary: #65676b;
-            --border: rgba(0, 0, 0, 0.1);
-        }
-
-        body {
-            background: var(--bg-main);
-            color: var(--text-primary);
-            font-family: 'Montserrat', sans-serif;
-            margin: 0;
-            transition: all 0.3s ease;
-        }
-
-        .app-header {
-            position: sticky; top: 0; background: var(--bg-main);
-            padding: 18px; z-index: 1000;
-            border-bottom: 1px solid var(--border); text-align: center;
-        }
-
+        .app-header { position: sticky; top: 0; background: var(--bg-main); padding: 18px; border-bottom: 1px solid var(--border); text-align: center; z-index: 1000; }
         .view-container { padding: 15px; padding-bottom: 100px; }
         .view-section { display: none; }
-        .view-section.active { display: block; }
+        .view-section.active { display: block; animation: fadeIn 0.3s; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-        .card {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 14px; padding: 16px; margin-bottom: 12px;
-            position: relative;
-        }
-
+        .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 16px; margin-bottom: 12px; position: relative; }
         .server-title { font-weight: 800; font-size: 16px; display: block; color: var(--accent); }
-        .server-sub { font-size: 12px; margin: 4px 0; display: block; font-weight: 600; }
-        .server-ip { font-family: monospace; font-size: 13px; color: var(--text-secondary); background: rgba(255,255,255,0.05); padding: 2px 6px; border-radius: 4px; }
+        .server-sub { font-size: 13px; display: block; margin-top: 4px; }
+        .server-ip { font-family: monospace; font-size: 12px; color: var(--accent); background: rgba(0,229,255,0.1); padding: 4px 8px; border-radius: 6px; display: inline-block; margin-top: 8px; }
 
-        .bottom-nav {
-            position: fixed; bottom: 0; width: 100%; height: 65px;
-            background: var(--surface); border-top: 1px solid var(--border);
-            display: grid; grid-template-columns: repeat(3, 1fr); z-index: 1001;
-        }
-
-        .nav-link {
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            color: var(--text-secondary); font-size: 10px; font-weight: 600; cursor: pointer;
-        }
-
+        .bottom-nav { position: fixed; bottom: 0; width: 100%; height: 65px; background: var(--surface); border-top: 1px solid var(--border); display: grid; grid-template-columns: repeat(3, 1fr); z-index: 1001; }
+        .nav-link { display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-secondary); font-size: 10px; font-weight: 600; cursor: pointer; }
         .nav-link.active { color: var(--accent); }
 
         .opt-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border); }
-        select, .btn-theme, .admin-btn { background: var(--accent); border: none; padding: 8px 12px; border-radius: 8px; font-weight: 700; cursor: pointer; color: #000; }
-
-        /* Админские штучки */
-        .del-btn { position: absolute; top: 10px; right: 10px; background: #ff4444; color: #fff; border: none; border-radius: 5px; padding: 2px 8px; font-size: 10px; display: none; }
-        .save-btn { width: 100%; margin-top: 15px; background: #00ff88; display: none; }
+        select, .btn-theme, .admin-btn { background: var(--accent); border: none; padding: 10px 15px; border-radius: 10px; font-weight: 800; cursor: pointer; color: #000; }
+        
+        .del-btn { position: absolute; top: 10px; right: 10px; background: #ff4444; color: #fff; border: none; border-radius: 8px; width: 25px; height: 25px; font-weight: bold; display: none; }
+        .save-btn { width: 100%; margin-top: 20px; background: #00ff88; display: none; }
         .add-btn { width: 100%; margin-bottom: 15px; background: var(--accent); display: none; }
     </style>
 </head>
 <body class="dark-theme">
 
+    <div id="access-error">
+        <h2 style="color: red; font-weight: 800;">ACCESS DENIED</h2>
+        <p style="color: white">Open via Telegram Bot</p>
+    </div>
+
     <header class="app-header">
-        <h1 id="app-title" style="margin:0; font-size: 16px; letter-spacing: 2px;">RUMINE NEWS</h1>
+        <h1 style="margin:0; font-size: 18px; letter-spacing: 2px;">RUMINE NEWS</h1>
     </header>
 
     <div class="view-container">
         <div id="news" class="view-section active">
-            <button class="admin-btn add-btn" onclick="addCard('news')">+ Добавить новость</button>
-            <div id="news-list">Загрузка...</div>
+            <button class="admin-btn add-btn" id="add-news-btn" onclick="addCard('news')">+ ДОБАВИТЬ</button>
+            <div id="news-list">Loading...</div>
         </div>
 
         <div id="servers" class="view-section">
-            <button class="admin-btn add-btn" onclick="addCard('servers')">+ Добавить сервер</button>
-            <div id="servers-list">Загрузка...</div>
+            <button class="admin-btn add-btn" id="add-srv-btn" onclick="addCard('servers')">+ ДОБАВИТЬ</button>
+            <div id="servers-list">Loading...</div>
         </div>
 
         <div id="options" class="view-section">
             <div class="card">
-                <div class="opt-row">
-                    <span id="label-user">Аккаунт:</span>
-                    <span id="user-info" style="color: var(--accent);">Гость</span>
-                </div>
-                <div class="opt-row">
-                    <span id="label-lang">Язык:</span>
-                    <select id="lang-select" onchange="changeLang()">
+                <div class="opt-row"><span id="txt-acc">Аккаунт:</span><span id="user-info" style="color: var(--accent);">...</span></div>
+                <div class="opt-row"><span id="txt-lang">Язык:</span>
+                    <select id="lang-select" onchange="updateUILanguage()">
                         <option value="ru">Русский</option>
                         <option value="ua">Українська</option>
                         <option value="en">English</option>
                     </select>
                 </div>
-                <div class="opt-row">
-                    <span id="label-theme">Тема:</span>
-                    <button class="btn-theme" onclick="toggleTheme()" id="theme-btn">DARK</button>
-                </div>
-                <button id="publish-btn" class="admin-btn save-btn">СОХРАНИТЬ ИЗМЕНЕНИЯ</button>
+                <div class="opt-row"><span id="txt-theme">Тема:</span><button class="btn-theme" onclick="toggleTheme()" id="theme-btn">DARK</button></div>
+                <button id="publish-btn" class="admin-btn save-btn">ОПУБЛИКОВАТЬ</button>
             </div>
         </div>
     </div>
 
     <nav class="bottom-nav">
-        <div class="nav-link active" onclick="tab('news', this)"><span id="nav-news-text">Новости</span></div>
-        <div class="nav-link" onclick="tab('servers', this)"><span id="nav-top-text">Топ</span></div>
-        <div class="nav-link" onclick="tab('options', this)"><span id="nav-opt-text">Опции</span></div>
+        <div class="nav-link active" onclick="tab('news', this)" id="nav-news">НОВОСТИ</div>
+        <div class="nav-link" onclick="tab('servers', this)" id="nav-top">ТОП</div>
+        <div class="nav-link" onclick="tab('options', this)" id="nav-opt">ОПЦИИ</div>
     </nav>
 
     <script>
-        // КОНФИГ БАЗЫ (Твои данные уже тут)
         const firebaseConfig = {
             apiKey: "AIzaSyA-tvZ6EUAD_QqmPlpBzXJDyr3ra_VQ-Ws",
-            databaseURL: "ВСТАВЬ_СВОЙ_DATABASE_URL_БЕЛЬГИЯ", 
+            databaseURL: "ВСТАВЬ_СЮДА_ССЫЛКУ_ИЗ_БЕЛЬГИИ", 
             projectId: "ruminenewsbot",
         };
 
@@ -135,113 +94,124 @@
         const db = firebase.database();
         const tg = window.Telegram.WebApp;
         const ADMIN_ID = 6086871004;
-        const userTgId = tg.initDataUnsafe?.user?.id || 0;
+        let currentUserId = 0;
 
-        const translations = {
-            ru: { news: "Новости", top: "Топ", opt: "Опции", user: "Аккаунт", lang: "Язык", theme: "Тема" },
-            ua: { news: "Новини", top: "Топ", opt: "Опції", user: "Акаунт", lang: "Мова", theme: "Тема" },
-            en: { news: "News", top: "Top", opt: "Options", user: "Account", lang: "Language", theme: "Theme" }
+        const langData = {
+            ru: { news: "НОВОСТИ", top: "ТОП", opt: "ОПЦИИ", acc: "Аккаунт:", lang: "Язык:", theme: "Тема:", add: "+ ДОБАВИТЬ", save: "СОХРАНИТЬ", first: "СОЗДАТЬ ДАННЫЕ" },
+            ua: { news: "НОВИНИ", top: "ТОП", opt: "ОПЦІЇ", acc: "Акаунт:", lang: "Мова:", theme: "Тема:", add: "+ ДОДАТИ", save: "ЗБЕРЕГТИ", first: "СТВОРИТИ ДАНІ" },
+            en: { news: "NEWS", top: "TOP", opt: "OPTIONS", acc: "Account:", lang: "Language:", theme: "Theme:", add: "+ ADD NEW", save: "PUBLISH", first: "CREATE DATA" }
         };
+
+        function updateUILanguage() {
+            const l = document.getElementById('lang-select').value;
+            const t = langData[l];
+            document.getElementById('nav-news').innerText = t.news;
+            document.getElementById('nav-top').innerText = t.top;
+            document.getElementById('nav-opt').innerText = t.opt;
+            document.getElementById('txt-acc').innerText = t.acc;
+            document.getElementById('txt-lang').innerText = t.lang;
+            document.getElementById('txt-theme').innerText = t.theme;
+            document.getElementById('add-news-btn').innerText = t.add;
+            document.getElementById('add-srv-btn').innerText = t.add;
+            document.getElementById('publish-btn').innerText = t.save;
+            
+            // Если кнопка первого запуска есть, её тоже переведем
+            const firstBtn = document.getElementById('first-data-btn');
+            if(firstBtn) firstBtn.innerText = t.first;
+        }
 
         function loadData() {
             db.ref('/').on('value', (snapshot) => {
                 const data = snapshot.val();
-                if (!data) return;
-                
+                if (!data) {
+                    if (currentUserId == ADMIN_ID) {
+                        document.getElementById('news-list').innerHTML = `<center><button class="admin-btn" id="first-data-btn" style="display:block; margin-top:20px" onclick="createFirstData()">СОЗДАТЬ ДАННЫЕ</button></center>`;
+                    } else {
+                        document.getElementById('news-list').innerHTML = '<center>Empty</center>';
+                    }
+                    return;
+                }
                 renderNews(data.news || []);
                 renderServers(data.servers || []);
             });
         }
 
-        function renderNews(list) {
-            const cont = document.getElementById('news-list');
-            cont.innerHTML = '';
-            list.forEach((item, i) => {
-                cont.innerHTML += `
-                    <div class="card" data-index="${i}">
-                        <button class="del-btn" onclick="this.parentElement.remove()">X</button>
-                        <span class="server-title" contenteditable="${userTgId === ADMIN_ID}">${item.title}</span>
-                        <span class="server-sub" contenteditable="${userTgId === ADMIN_ID}">${item.desc}</span>
-                    </div>`;
+        function createFirstData() {
+            db.ref('/').set({
+                news: [{ title: "Заголовок", desc: "Описание" }],
+                servers: [{ name: "FunTime", type: "Гриф", ip: "play.funtime.su" }]
             });
-            checkAdmin();
+        }
+
+        function renderNews(list) {
+            const cont = document.getElementById('news-list'); cont.innerHTML = '';
+            list.forEach(n => {
+                cont.innerHTML += `<div class="card"><button class="del-btn" onclick="this.parentElement.remove()">✕</button>
+                <span class="server-title" contenteditable="${currentUserId == ADMIN_ID}">${n.title}</span>
+                <span class="server-sub" contenteditable="${currentUserId == ADMIN_ID}">${n.desc}</span></div>`;
+            });
+            checkAdminUI();
         }
 
         function renderServers(list) {
-            const cont = document.getElementById('servers-list');
-            cont.innerHTML = '';
-            list.forEach((item, i) => {
-                cont.innerHTML += `
-                    <div class="card" data-index="${i}">
-                        <button class="del-btn" onclick="this.parentElement.remove()">X</button>
-                        <span class="server-title" contenteditable="${userTgId === ADMIN_ID}">${item.name}</span>
-                        <span class="server-sub" contenteditable="${userTgId === ADMIN_ID}">${item.type}</span>
-                        <span class="server-ip" contenteditable="${userTgId === ADMIN_ID}">${item.ip}</span>
-                    </div>`;
+            const cont = document.getElementById('servers-list'); cont.innerHTML = '';
+            list.forEach(s => {
+                cont.innerHTML += `<div class="card"><button class="del-btn" onclick="this.parentElement.remove()">✕</button>
+                <span class="server-title" contenteditable="${currentUserId == ADMIN_ID}">${s.name}</span>
+                <span class="server-sub" contenteditable="${currentUserId == ADMIN_ID}">${s.type}</span>
+                <span class="server-ip" contenteditable="${currentUserId == ADMIN_ID}">${s.ip}</span></div>`;
             });
-            checkAdmin();
+            checkAdminUI();
         }
 
         function addCard(type) {
-            const listId = type === 'news' ? 'news-list' : 'servers-list';
-            const cont = document.getElementById(listId);
+            const cont = document.getElementById(type + '-list');
             const html = type === 'news' ? 
-                `<div class="card"><button class="del-btn" style="display:block" onclick="this.parentElement.remove()">X</button><span class="server-title" contenteditable="true">Заголовок</span><span class="server-sub" contenteditable="true">Описание</span></div>` :
-                `<div class="card"><button class="del-btn" style="display:block" onclick="this.parentElement.remove()">X</button><span class="server-title" contenteditable="true">Название</span><span class="server-sub" contenteditable="true">Гриф/Анка</span><span class="server-ip" contenteditable="true">0.0.0.0</span></div>`;
+                `<div class="card"><button class="del-btn" style="display:block" onclick="this.parentElement.remove()">✕</button><span class="server-title" contenteditable="true">Title</span><span class="server-sub" contenteditable="true">Description</span></div>` :
+                `<div class="card"><button class="del-btn" style="display:block" onclick="this.parentElement.remove()">✕</button><span class="server-title" contenteditable="true">Name</span><span class="server-sub" contenteditable="true">Type</span><span class="server-ip" contenteditable="true">IP</span></div>`;
             cont.insertAdjacentHTML('afterbegin', html);
         }
 
-        function checkAdmin() {
-            if (userTgId === ADMIN_ID) {
+        function checkAdminUI() {
+            if (currentUserId == ADMIN_ID) {
                 document.querySelectorAll('.del-btn, .add-btn, .save-btn').forEach(el => el.style.display = 'block');
             }
         }
 
         document.getElementById('publish-btn').onclick = () => {
-            const news = [];
-            document.querySelectorAll('#news-list .card').forEach(c => {
+            const news = []; document.querySelectorAll('#news-list .card').forEach(c => {
                 news.push({ title: c.querySelector('.server-title').innerText, desc: c.querySelector('.server-sub').innerText });
             });
-            const servers = [];
-            document.querySelectorAll('#servers-list .card').forEach(c => {
+            const servers = []; document.querySelectorAll('#servers-list .card').forEach(c => {
                 servers.push({ name: c.querySelector('.server-title').innerText, type: c.querySelector('.server-sub').innerText, ip: c.querySelector('.server-ip').innerText });
             });
-            db.ref('/').set({ news, servers }).then(() => alert("Данные обновлены для всех!"));
+            db.ref('/').set({ news, servers }).then(() => alert("Saved!"));
         };
 
-        function changeLang() {
-            const l = document.getElementById('lang-select').value;
-            const t = translations[l];
-            document.getElementById('nav-news-text').innerText = t.news;
-            document.getElementById('nav-top-text').innerText = t.top;
-            document.getElementById('nav-opt-text').innerText = t.opt;
-            document.getElementById('label-user').innerText = t.user + ":";
-            document.getElementById('label-lang').innerText = t.lang + ":";
-            document.getElementById('label-theme').innerText = t.theme + ":";
-        }
-
-        function toggleTheme() {
-            const b = document.body;
-            const btn = document.getElementById('theme-btn');
-            b.classList.toggle('light-theme');
-            btn.innerText = b.classList.contains('light-theme') ? 'LIGHT' : 'DARK';
-        }
-
+        function toggleTheme() { document.body.classList.toggle('light-theme'); }
         function tab(id, el) {
             document.querySelectorAll('.view-section').forEach(s => s.classList.remove('active'));
             document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-            document.getElementById(id).classList.add('active');
-            el.classList.add('active');
+            document.getElementById(id).classList.add('active'); el.classList.add('active');
         }
 
         window.onload = () => {
-            if (tg.initDataUnsafe?.user) {
-                const u = tg.initDataUnsafe.user;
-                document.getElementById('user-info').innerText = `${u.first_name} (ID: ${u.id})`;
-                tg.expand();
+            // ПРОВЕРКА ВХОДА ИЗ ТЕЛЕГРАМА
+            if (!tg.initDataUnsafe || Object.keys(tg.initDataUnsafe).length === 0) {
+                document.getElementById('access-error').style.display = 'flex';
+                return;
             }
-            loadData();
-            changeLang();
+
+            setTimeout(() => {
+                if (tg.initDataUnsafe.user) {
+                    currentUserId = tg.initDataUnsafe.user.id;
+                    document.getElementById('user-info').innerText = tg.initDataUnsafe.user.first_name;
+                }
+                tg.expand();
+                loadData();
+                updateUILanguage();
+                checkAdminUI();
+            }, 300);
         };
     </script>
 </body>
