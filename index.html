@@ -14,7 +14,15 @@
             --text-primary: #ffffff;
             --text-secondary: #888888;
             --border: rgba(255, 255, 255, 0.05);
-            --error: #ff3b3b;
+        }
+
+        /* Светлая тема */
+        body.light-theme {
+            --bg-main: #f0f2f5;
+            --surface: #ffffff;
+            --text-primary: #1a1a1a;
+            --text-secondary: #65676b;
+            --border: rgba(0, 0, 0, 0.1);
         }
 
         body {
@@ -22,202 +30,192 @@
             color: var(--text-primary);
             font-family: 'Montserrat', sans-serif;
             margin: 0;
-            overflow-x: hidden;
-            -webkit-user-select: none;
+            transition: all 0.3s ease;
         }
 
-        /* Экран ошибки при входе не через ТГ */
         #access-error {
             display: none;
-            position: fixed;
-            inset: 0;
-            background: var(--bg-main);
-            z-index: 9999;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            padding: 20px;
+            position: fixed; inset: 0; background: #000; z-index: 9999;
+            flex-direction: column; align-items: center; justify-content: center; text-align: center;
         }
 
-        .error-icon { font-size: 50px; margin-bottom: 20px; }
-
-        /* Шапка */
         .app-header {
-            position: sticky;
-            top: 0;
-            background: rgba(2, 2, 2, 0.9);
-            backdrop-filter: blur(20px);
-            padding: 18px;
-            z-index: 1000;
-            border-bottom: 1px solid var(--border);
-            text-align: center;
+            position: sticky; top: 0; background: var(--bg-main);
+            backdrop-filter: blur(20px); padding: 18px; z-index: 1000;
+            border-bottom: 1px solid var(--border); text-align: center;
         }
 
-        .app-header h1 {
-            margin: 0;
-            font-size: 16px;
-            font-weight: 800;
-            letter-spacing: 4px;
-            text-transform: uppercase;
-            color: #fff;
-        }
-
-        /* Лента новостей */
         .view-container { padding: 15px; padding-bottom: 90px; }
-        
         .view-section { display: none; }
-        .view-section.active { display: block; animation: slideUp 0.3s ease; }
+        .view-section.active { display: block; animation: fadeIn 0.3s; }
 
-        @keyframes slideUp {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-        .news-card {
+        /* Карточки */
+        .card {
             background: var(--surface);
             border: 1px solid var(--border);
-            border-radius: 14px;
-            padding: 16px;
-            margin-bottom: 12px;
-            position: relative;
+            border-radius: 14px; padding: 16px; margin-bottom: 12px;
         }
 
-        .news-card::after {
-            content: '';
-            position: absolute;
-            top: 16px; left: 0;
-            width: 3px; height: 20px;
-            background: var(--accent);
-            box-shadow: 0 0 8px var(--accent);
-        }
+        .server-title { font-weight: 800; font-size: 16px; display: block; color: var(--accent); }
+        .server-sub { font-size: 12px; margin: 4px 0; display: block; font-weight: 600; }
+        .server-ip { font-family: monospace; font-size: 13px; color: var(--text-secondary); background: rgba(0,0,0,0.1); padding: 2px 6px; border-radius: 4px; }
 
-        .title { display: block; font-weight: 600; font-size: 14px; margin-bottom: 6px; }
-        .desc { font-size: 12px; color: var(--text-secondary); line-height: 1.5; }
-        .unconfirmed { color: #ffaa00; font-size: 10px; text-transform: uppercase; margin-top: 8px; display: block; }
-
-        /* Навигация */
+        /* Меню навигации */
         .bottom-nav {
-            position: fixed;
-            bottom: 0; width: 100%;
-            height: 65px;
-            background: #080808;
-            border-top: 1px solid var(--border);
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            z-index: 1001;
+            position: fixed; bottom: 0; width: 100%; height: 65px;
+            background: var(--surface); border-top: 1px solid var(--border);
+            display: grid; grid-template-columns: repeat(3, 1fr); z-index: 1001;
         }
 
         .nav-link {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            color: var(--text-secondary);
-            font-size: 10px;
-            text-transform: uppercase;
-            font-weight: 600;
-            cursor: pointer;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            color: var(--text-secondary); font-size: 10px; font-weight: 600; cursor: pointer;
         }
 
         .nav-link.active { color: var(--accent); }
-        .nav-icon { font-size: 18px; margin-bottom: 4px; }
 
-        /* Опции */
-        .user-box {
-            background: linear-gradient(145deg, #111, #080808);
-            border-radius: 12px;
-            padding: 20px;
-            border: 1px solid var(--border);
-        }
-
-        .uid { font-family: monospace; color: var(--accent); font-size: 16px; }
+        /* Настройки */
+        .opt-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border); }
+        select, .btn-theme { background: var(--accent); border: none; padding: 5px 10px; border-radius: 5px; font-weight: 700; cursor: pointer; }
     </style>
 </head>
-<body>
+<body class="dark-theme">
 
     <div id="access-error">
-        <div class="error-icon">🚫</div>
-        <h2 style="color: var(--error)">ОШИБКА ДОСТУПА</h2>
-        <p style="color: var(--text-secondary)">Приложение доступно только через официальный бот Telegram.</p>
+        <h2 style="color: red">ACCESS DENIED</h2>
+        <p style="color: white">Open via Telegram Bot</p>
     </div>
 
     <header class="app-header">
-        <h1>RuMine News</h1>
+        <h1 id="app-title" style="margin:0; font-size: 16px; letter-spacing: 2px;">RUMINE NEWS</h1>
     </header>
 
     <div class="view-container">
         <div id="news" class="view-section active">
-            <div class="news-card">
-                <span class="title">Конкуренция PulseVisual</span>
-                <span class="desc">У PulseVisual скоро появится серьезный конкурент — проект LightVisual. Ждем битву стилей.</span>
             </div>
-            <div class="news-card">
-                <span class="title">Кастомный режим</span>
-                <span class="desc">Неизвестный тех.админ сообщил о начале разработки уникального кастомного режима. Подробности держатся в секрете.</span>
-            </div>
-            <div class="news-card">
-                <span class="title">Запуск ReallyWorld от Дедли</span>
-                <span class="desc">Дедли официально подтвердил открытие своего ReallyWorld.</span>
-            </div>
-            <div class="news-card">
-                <span class="title">Zimmirik в Shorts</span>
-                <span class="desc">Популярный ютубер Zimmirik начал активно осваивать формат коротких видео.</span>
-            </div>
-            <div class="news-card">
-                <span class="title">Копия RW от AngelMine?</span>
-                <span class="desc">Владелец AngelMine запустил запасной сервер, который является полной копией ReallyWorld.</span>
-                <span class="unconfirmed">[ Не подтверждено ]</span>
-            </div>
-            <div class="news-card">
-                <span class="title">Heim покидает StickWay</span>
-                <span class="desc">Heim официально ушел со своего проекта StickWay. Что будет дальше — пока неизвестно.</span>
-            </div>
-            <div class="news-card">
-                <span class="title">Скандал с MoreCube</span>
-                <span class="desc">Ходят слухи, что бренд MoreCube был зарегистрирован в РФ посторонним лицом. Серверу грозит закрытие.</span>
-                <span class="unconfirmed">[ Не подтверждено ]</span>
-            </div>
-            <div class="news-card">
-                <span class="title">Рекорд ReallyWorld</span>
-                <span class="desc">На сервере зафиксирован новый пиковый онлайн за последнее время.</span>
-            </div>
-            <div class="news-card" style="border-color: gold;">
-                <span class="title">Мировой рекорд FunTime</span>
-                <span class="desc">В моменте FunTime стал топ-1 сервером всего мира по количеству игроков онлайн.</span>
-            </div>
-        </div>
 
         <div id="servers" class="view-section">
-            <div class="news-card"><span class="title">1. FunTime</span><span class="desc">Мировой лидер по онлайну.</span></div>
-            <div class="news-card"><span class="title">2. ReallyWorld</span><span class="desc">Классика гриферского выживания.</span></div>
-            <div class="news-card"><span class="title">3. AngelMine</span><span class="desc">Стабильный проект с историей.</span></div>
+            <div class="card">
+                <span class="server-title">FunTime</span>
+                <span class="server-sub">Гриф/Анархия</span>
+                <span class="server-ip">play.funtime.su</span>
+            </div>
+            <div class="card">
+                <span class="server-title">ReallyWorld</span>
+                <span class="server-sub">Гриф/Анка</span>
+                <span class="server-ip">mc.reallyworld.ru</span>
+            </div>
+            <div class="card">
+                <span class="server-title">AngelMine</span>
+                <span class="server-sub">Анархия/Гриф</span>
+                <span class="server-ip">play.angelmine.ru</span>
+            </div>
         </div>
 
         <div id="options" class="view-section">
-            <div class="user-box">
-                <p style="margin: 0 0 10px 0; font-size: 12px; color: var(--text-secondary);">Ваш Telegram ID:</p>
-                <span class="uid" id="user-id">Checking...</span>
+            <div class="card">
+                <div class="opt-row">
+                    <span id="label-user">Аккаунт:</span>
+                    <span id="user-info" style="color: var(--accent);">User (ID: 000)</span>
+                </div>
+                <div class="opt-row">
+                    <span id="label-lang">Язык:</span>
+                    <select id="lang-select" onchange="changeLang()">
+                        <option value="ru">Русский</option>
+                        <option value="ua">Українська</option>
+                        <option value="en">English</option>
+                    </select>
+                </div>
+                <div class="opt-row">
+                    <span id="label-theme">Тема:</span>
+                    <button class="btn-theme" onclick="toggleTheme()" id="theme-btn">DARK</button>
+                </div>
             </div>
         </div>
     </div>
 
     <nav class="bottom-nav">
-        <div class="nav-link active" onclick="tab('news', this)"><span class="nav-icon">📰</span><span>Новости</span></div>
-        <div class="nav-link" onclick="tab('servers', this)"><span class="nav-icon">📊</span><span>Топ</span></div>
-        <div class="nav-link" onclick="tab('options', this)"><span class="nav-icon">⚙️</span><span>Опции</span></div>
+        <div class="nav-link active" onclick="tab('news', this)"><span id="nav-news-text">Новости</span></div>
+        <div class="nav-link" onclick="tab('servers', this)"><span id="nav-top-text">Топ</span></div>
+        <div class="nav-link" onclick="tab('options', this)"><span id="nav-opt-text">Опции</span></div>
     </nav>
 
     <script>
         const tg = window.Telegram.WebApp;
+        
+        const translations = {
+            ru: {
+                news: "Новости", top: "Топ", opt: "Опции", user: "Аккаунт", lang: "Язык", theme: "Тема",
+                data: [
+                    ["Конкурент PulseVisual", "У PulseVisual появится конкурент LightVisual"],
+                    ["Кастомный режим", "Тех.админ говорит про создание кастомного режима"],
+                    ["Дедли и RW", "Дедли открыл свою ReallyWorld"],
+                    ["Ютуберы", "Zimmirik начал делать shorts"],
+                    ["AngelMine", "Открыта копия ReallyWorld (Не подтверждено)"],
+                    ["Heim", "Heim ушел со своего сервера StickWay"],
+                    ["MoreCube", "Слухи: проект зарегистрирован в РФ другим лицом (Не подтверждено)"],
+                    ["Рекорд RW", "На ReallyWorld недавно был пик онлайна"],
+                    ["FunTime Топ-1", "FunTime стал топ 1 сервером мира по онлайну"]
+                ]
+            },
+            ua: {
+                news: "Новини", top: "Топ", opt: "Опції", user: "Акаунт", lang: "Мова", theme: "Тема",
+                data: [
+                    ["Конкурент PulseVisual", "У PulseVisual з'явиться конкурент LightVisual"],
+                    ["Кастомний режим", "Тех.адмін каже про створення кастомного режиму"],
+                    ["Дедлі та RW", "Дедлі відкрив свою ReallyWorld"],
+                    ["Ютубери", "Zimmirik почав робити shorts"],
+                    ["AngelMine", "Відкрито копію ReallyWorld (Не підтверджено)"],
+                    ["Heim", "Heim пішов зі свого сервера StickWay"],
+                    ["MoreCube", "Чутки: проект зареєстрований у РФ іншою особою (Не підтверджено)"],
+                    ["Рекорд RW", "На ReallyWorld нещодавно був пік онлайну"],
+                    ["FunTime Топ-1", "FunTime став топ 1 сервером світу по онлайну"]
+                ]
+            },
+            en: {
+                news: "News", top: "Top", opt: "Options", user: "Account", lang: "Language", theme: "Theme",
+                data: [
+                    ["PulseVisual Rival", "LightVisual will be a rival to PulseVisual"],
+                    ["Custom Mode", "Tech admin talks about creating a custom mode"],
+                    ["Deadly & RW", "Deadly opened his ReallyWorld"],
+                    ["YouTubers", "Zimmirik started making shorts"],
+                    ["AngelMine", "Copy of ReallyWorld opened (Unconfirmed)"],
+                    ["Heim", "Heim left his server StickWay"],
+                    ["MoreCube", "Rumors: MoreCube registered in RU by someone else (Unconfirmed)"],
+                    ["RW Record", "ReallyWorld reached peak online recently"],
+                    ["FunTime Top-1", "FunTime became #1 server in the world by online"]
+                ]
+            }
+        };
 
-        function checkAuth() {
-            // Если ID нет (открыто не в ТГ), показываем ошибку
-            if (!tg.initDataUnsafe || !tg.initDataUnsafe.user) {
-                document.getElementById('access-error').style.display = 'flex';
+        function changeLang() {
+            const l = document.getElementById('lang-select').value;
+            const t = translations[l];
+            document.getElementById('nav-news-text').innerText = t.news;
+            document.getElementById('nav-top-text').innerText = t.top;
+            document.getElementById('nav-opt-text').innerText = t.opt;
+            document.getElementById('label-user').innerText = t.user + ":";
+            document.getElementById('label-lang').innerText = t.lang + ":";
+            document.getElementById('label-theme').innerText = t.theme + ":";
+            
+            const newsCont = document.getElementById('news');
+            newsCont.innerHTML = '';
+            t.data.forEach(item => {
+                newsCont.innerHTML += `<div class="card"><span class="server-title">${item[0]}</span><span class="server-sub" style="color:var(--text-secondary)">${item[1]}</span></div>`;
+            });
+        }
+
+        function toggleTheme() {
+            const b = document.body;
+            const btn = document.getElementById('theme-btn');
+            if(b.classList.contains('dark-theme')) {
+                b.classList.replace('dark-theme', 'light-theme');
+                btn.innerText = 'LIGHT';
             } else {
-                tg.expand();
-                document.getElementById('user-id').innerText = 'ID: ' + tg.initDataUnsafe.user.id;
+                b.classList.replace('light-theme', 'dark-theme');
+                btn.innerText = 'DARK';
             }
         }
 
@@ -228,7 +226,16 @@
             el.classList.add('active');
         }
 
-        window.onload = checkAuth;
+        window.onload = () => {
+            if (!tg.initDataUnsafe || !tg.initDataUnsafe.user) {
+                document.getElementById('access-error').style.display = 'flex';
+            } else {
+                const u = tg.initDataUnsafe.user;
+                document.getElementById('user-info').innerText = `${u.first_name} (ID: ${u.id})`;
+                tg.expand();
+            }
+            changeLang();
+        };
     </script>
 </body>
 </html>
