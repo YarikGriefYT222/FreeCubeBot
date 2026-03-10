@@ -12,28 +12,21 @@
         :root { --accent: #00e5ff; --bg-main: #020202; --surface: #0d0d0d; --text-primary: #ffffff; --text-secondary: #888888; --border: rgba(255, 255, 255, 0.05); }
         body.light-theme { --bg-main: #f0f2f5; --surface: #ffffff; --text-primary: #1a1a1a; --text-secondary: #65676b; --border: rgba(0, 0, 0, 0.1); }
         body { background: var(--bg-main); color: var(--text-primary); font-family: 'Montserrat', sans-serif; margin: 0; transition: 0.3s; overflow-x: hidden; }
-        
-        /* Заглушка доступа */
         #access-error { display: none; position: fixed; inset: 0; background: #000; z-index: 9999; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
-
         .app-header { position: sticky; top: 0; background: var(--bg-main); padding: 18px; border-bottom: 1px solid var(--border); text-align: center; z-index: 1000; }
         .view-container { padding: 15px; padding-bottom: 100px; }
         .view-section { display: none; }
         .view-section.active { display: block; animation: fadeIn 0.3s; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-
         .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 16px; margin-bottom: 12px; position: relative; }
         .server-title { font-weight: 800; font-size: 16px; display: block; color: var(--accent); }
         .server-sub { font-size: 13px; display: block; margin-top: 4px; }
         .server-ip { font-family: monospace; font-size: 12px; color: var(--accent); background: rgba(0,229,255,0.1); padding: 4px 8px; border-radius: 6px; display: inline-block; margin-top: 8px; }
-
         .bottom-nav { position: fixed; bottom: 0; width: 100%; height: 65px; background: var(--surface); border-top: 1px solid var(--border); display: grid; grid-template-columns: repeat(3, 1fr); z-index: 1001; }
         .nav-link { display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-secondary); font-size: 10px; font-weight: 600; cursor: pointer; }
         .nav-link.active { color: var(--accent); }
-
         .opt-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border); }
         select, .btn-theme, .admin-btn { background: var(--accent); border: none; padding: 10px 15px; border-radius: 10px; font-weight: 800; cursor: pointer; color: #000; }
-        
         .del-btn { position: absolute; top: 10px; right: 10px; background: #ff4444; color: #fff; border: none; border-radius: 8px; width: 25px; height: 25px; font-weight: bold; display: none; }
         .save-btn { width: 100%; margin-top: 20px; background: #00ff88; display: none; }
         .add-btn { width: 100%; margin-bottom: 15px; background: var(--accent); display: none; }
@@ -47,20 +40,18 @@
     </div>
 
     <header class="app-header">
-        <h1 style="margin:0; font-size: 18px; letter-spacing: 2px;">RUMINE NEWS</h1>
+        <h1 style="margin:0; font-size: 18px; letter-spacing: 2px;">RUMINE <span style="color:var(--accent)">NEWS</span></h1>
     </header>
 
     <div class="view-container">
         <div id="news" class="view-section active">
             <button class="admin-btn add-btn" id="add-news-btn" onclick="addCard('news')">+ ДОБАВИТЬ</button>
-            <div id="news-list">Loading...</div>
+            <div id="news-list">Загрузка...</div>
         </div>
-
         <div id="servers" class="view-section">
             <button class="admin-btn add-btn" id="add-srv-btn" onclick="addCard('servers')">+ ДОБАВИТЬ</button>
-            <div id="servers-list">Loading...</div>
+            <div id="servers-list">Загрузка...</div>
         </div>
-
         <div id="options" class="view-section">
             <div class="card">
                 <div class="opt-row"><span id="txt-acc">Аккаунт:</span><span id="user-info" style="color: var(--accent);">...</span></div>
@@ -86,7 +77,7 @@
     <script>
         const firebaseConfig = {
             apiKey: "AIzaSyA-tvZ6EUAD_QqmPlpBzXJDyr3ra_VQ-Ws",
-            databaseURL: "ВСТАВЬ_СЮДА_ССЫЛКУ_ИЗ_БЕЛЬГИИ", 
+            databaseURL: "https://ruminenewsbot-default-rtdb.europe-west1.firebasedatabase.app/", 
             projectId: "ruminenewsbot",
         };
 
@@ -114,10 +105,6 @@
             document.getElementById('add-news-btn').innerText = t.add;
             document.getElementById('add-srv-btn').innerText = t.add;
             document.getElementById('publish-btn').innerText = t.save;
-            
-            // Если кнопка первого запуска есть, её тоже переведем
-            const firstBtn = document.getElementById('first-data-btn');
-            if(firstBtn) firstBtn.innerText = t.first;
         }
 
         function loadData() {
@@ -125,7 +112,7 @@
                 const data = snapshot.val();
                 if (!data) {
                     if (currentUserId == ADMIN_ID) {
-                        document.getElementById('news-list').innerHTML = `<center><button class="admin-btn" id="first-data-btn" style="display:block; margin-top:20px" onclick="createFirstData()">СОЗДАТЬ ДАННЫЕ</button></center>`;
+                        document.getElementById('news-list').innerHTML = `<center><button class="admin-btn" style="display:block; margin-top:20px" onclick="createFirstData()">СОЗДАТЬ ДАННЫЕ</button></center>`;
                     } else {
                         document.getElementById('news-list').innerHTML = '<center>Empty</center>';
                     }
@@ -138,8 +125,8 @@
 
         function createFirstData() {
             db.ref('/').set({
-                news: [{ title: "Заголовок", desc: "Описание" }],
-                servers: [{ name: "FunTime", type: "Гриф", ip: "play.funtime.su" }]
+                news: [{ title: "Привет!", desc: "Это первая новость Ярослава" }],
+                servers: [{ name: "Heim Server", type: "Гриф", ip: "play.heim.ru" }]
             });
         }
 
@@ -167,8 +154,8 @@
         function addCard(type) {
             const cont = document.getElementById(type + '-list');
             const html = type === 'news' ? 
-                `<div class="card"><button class="del-btn" style="display:block" onclick="this.parentElement.remove()">✕</button><span class="server-title" contenteditable="true">Title</span><span class="server-sub" contenteditable="true">Description</span></div>` :
-                `<div class="card"><button class="del-btn" style="display:block" onclick="this.parentElement.remove()">✕</button><span class="server-title" contenteditable="true">Name</span><span class="server-sub" contenteditable="true">Type</span><span class="server-ip" contenteditable="true">IP</span></div>`;
+                `<div class="card"><button class="del-btn" style="display:block" onclick="this.parentElement.remove()">✕</button><span class="server-title" contenteditable="true">Title</span><span class="server-sub" contenteditable="true">Text</span></div>` :
+                `<div class="card"><button class="del-btn" style="display:block" onclick="this.parentElement.remove()">✕</button><span class="server-title" contenteditable="true">Server</span><span class="server-sub" contenteditable="true">Grief</span><span class="server-ip" contenteditable="true">0.0.0.0</span></div>`;
             cont.insertAdjacentHTML('afterbegin', html);
         }
 
@@ -185,7 +172,7 @@
             const servers = []; document.querySelectorAll('#servers-list .card').forEach(c => {
                 servers.push({ name: c.querySelector('.server-title').innerText, type: c.querySelector('.server-sub').innerText, ip: c.querySelector('.server-ip').innerText });
             });
-            db.ref('/').set({ news, servers }).then(() => alert("Saved!"));
+            db.ref('/').set({ news, servers }).then(() => alert("✅ Опубликовано!"));
         };
 
         function toggleTheme() { document.body.classList.toggle('light-theme'); }
@@ -196,22 +183,18 @@
         }
 
         window.onload = () => {
-            // ПРОВЕРКА ВХОДА ИЗ ТЕЛЕГРАМА
             if (!tg.initDataUnsafe || Object.keys(tg.initDataUnsafe).length === 0) {
                 document.getElementById('access-error').style.display = 'flex';
                 return;
             }
-
-            setTimeout(() => {
-                if (tg.initDataUnsafe.user) {
-                    currentUserId = tg.initDataUnsafe.user.id;
-                    document.getElementById('user-info').innerText = tg.initDataUnsafe.user.first_name;
-                }
-                tg.expand();
-                loadData();
-                updateUILanguage();
-                checkAdminUI();
-            }, 300);
+            if (tg.initDataUnsafe.user) {
+                currentUserId = tg.initDataUnsafe.user.id;
+                document.getElementById('user-info').innerText = tg.initDataUnsafe.user.first_name;
+            }
+            tg.expand();
+            updateUILanguage();
+            loadData();
+            checkAdminUI();
         };
     </script>
 </body>
