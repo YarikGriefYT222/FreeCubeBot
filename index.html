@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>RuMine News</title>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
@@ -16,7 +18,6 @@
             --border: rgba(255, 255, 255, 0.05);
         }
 
-        /* Светлая тема */
         body.light-theme {
             --bg-main: #f0f2f5;
             --surface: #ffffff;
@@ -33,36 +34,27 @@
             transition: all 0.3s ease;
         }
 
-        #access-error {
-            display: none;
-            position: fixed; inset: 0; background: #000; z-index: 9999;
-            flex-direction: column; align-items: center; justify-content: center; text-align: center;
-        }
-
         .app-header {
             position: sticky; top: 0; background: var(--bg-main);
-            backdrop-filter: blur(20px); padding: 18px; z-index: 1000;
+            padding: 18px; z-index: 1000;
             border-bottom: 1px solid var(--border); text-align: center;
         }
 
-        .view-container { padding: 15px; padding-bottom: 90px; }
+        .view-container { padding: 15px; padding-bottom: 100px; }
         .view-section { display: none; }
-        .view-section.active { display: block; animation: fadeIn 0.3s; }
+        .view-section.active { display: block; }
 
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-
-        /* Карточки */
         .card {
             background: var(--surface);
             border: 1px solid var(--border);
             border-radius: 14px; padding: 16px; margin-bottom: 12px;
+            position: relative;
         }
 
         .server-title { font-weight: 800; font-size: 16px; display: block; color: var(--accent); }
         .server-sub { font-size: 12px; margin: 4px 0; display: block; font-weight: 600; }
-        .server-ip { font-family: monospace; font-size: 13px; color: var(--text-secondary); background: rgba(0,0,0,0.1); padding: 2px 6px; border-radius: 4px; }
+        .server-ip { font-family: monospace; font-size: 13px; color: var(--text-secondary); background: rgba(255,255,255,0.05); padding: 2px 6px; border-radius: 4px; }
 
-        /* Меню навигации */
         .bottom-nav {
             position: fixed; bottom: 0; width: 100%; height: 65px;
             background: var(--surface); border-top: 1px solid var(--border);
@@ -76,17 +68,16 @@
 
         .nav-link.active { color: var(--accent); }
 
-        /* Настройки */
         .opt-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border); }
-        select, .btn-theme { background: var(--accent); border: none; padding: 5px 10px; border-radius: 5px; font-weight: 700; cursor: pointer; }
+        select, .btn-theme, .admin-btn { background: var(--accent); border: none; padding: 8px 12px; border-radius: 8px; font-weight: 700; cursor: pointer; color: #000; }
+
+        /* Админские штучки */
+        .del-btn { position: absolute; top: 10px; right: 10px; background: #ff4444; color: #fff; border: none; border-radius: 5px; padding: 2px 8px; font-size: 10px; display: none; }
+        .save-btn { width: 100%; margin-top: 15px; background: #00ff88; display: none; }
+        .add-btn { width: 100%; margin-bottom: 15px; background: var(--accent); display: none; }
     </style>
 </head>
 <body class="dark-theme">
-
-    <div id="access-error">
-        <h2 style="color: red">ACCESS DENIED</h2>
-        <p style="color: white">Open via Telegram Bot</p>
-    </div>
 
     <header class="app-header">
         <h1 id="app-title" style="margin:0; font-size: 16px; letter-spacing: 2px;">RUMINE NEWS</h1>
@@ -94,31 +85,20 @@
 
     <div class="view-container">
         <div id="news" class="view-section active">
-            </div>
+            <button class="admin-btn add-btn" onclick="addCard('news')">+ Добавить новость</button>
+            <div id="news-list">Загрузка...</div>
+        </div>
 
         <div id="servers" class="view-section">
-            <div class="card">
-                <span class="server-title">FunTime</span>
-                <span class="server-sub">Гриф/Анархия</span>
-                <span class="server-ip">play.funtime.su</span>
-            </div>
-            <div class="card">
-                <span class="server-title">ReallyWorld</span>
-                <span class="server-sub">Гриф/Анка</span>
-                <span class="server-ip">mc.reallyworld.ru</span>
-            </div>
-            <div class="card">
-                <span class="server-title">AngelMine</span>
-                <span class="server-sub">Анархия/Гриф</span>
-                <span class="server-ip">play.angelmine.ru</span>
-            </div>
+            <button class="admin-btn add-btn" onclick="addCard('servers')">+ Добавить сервер</button>
+            <div id="servers-list">Загрузка...</div>
         </div>
 
         <div id="options" class="view-section">
             <div class="card">
                 <div class="opt-row">
                     <span id="label-user">Аккаунт:</span>
-                    <span id="user-info" style="color: var(--accent);">User (ID: 000)</span>
+                    <span id="user-info" style="color: var(--accent);">Гость</span>
                 </div>
                 <div class="opt-row">
                     <span id="label-lang">Язык:</span>
@@ -132,6 +112,7 @@
                     <span id="label-theme">Тема:</span>
                     <button class="btn-theme" onclick="toggleTheme()" id="theme-btn">DARK</button>
                 </div>
+                <button id="publish-btn" class="admin-btn save-btn">СОХРАНИТЬ ИЗМЕНЕНИЯ</button>
             </div>
         </div>
     </div>
@@ -143,51 +124,89 @@
     </nav>
 
     <script>
+        // КОНФИГ БАЗЫ (Твои данные уже тут)
+        const firebaseConfig = {
+            apiKey: "AIzaSyA-tvZ6EUAD_QqmPlpBzXJDyr3ra_VQ-Ws",
+            databaseURL: "ВСТАВЬ_СВОЙ_DATABASE_URL_БЕЛЬГИЯ", 
+            projectId: "ruminenewsbot",
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
         const tg = window.Telegram.WebApp;
-        
+        const ADMIN_ID = 6086871004;
+        const userTgId = tg.initDataUnsafe?.user?.id || 0;
+
         const translations = {
-            ru: {
-                news: "Новости", top: "Топ", opt: "Опции", user: "Аккаунт", lang: "Язык", theme: "Тема",
-                data: [
-                    ["Конкурент PulseVisual", "У PulseVisual появится конкурент LightVisual"],
-                    ["Кастомный режим", "Тех.админ говорит про создание кастомного режима"],
-                    ["Дедли и RW", "Дедли открыл свою ReallyWorld"],
-                    ["Ютуберы", "Zimmirik начал делать shorts"],
-                    ["AngelMine", "Открыта копия ReallyWorld (Не подтверждено)"],
-                    ["Heim", "Heim ушел со своего сервера StickWay"],
-                    ["MoreCube", "Слухи: проект зарегистрирован в РФ другим лицом (Не подтверждено)"],
-                    ["Рекорд RW", "На ReallyWorld недавно был пик онлайна"],
-                    ["FunTime Топ-1", "FunTime стал топ 1 сервером мира по онлайну"]
-                ]
-            },
-            ua: {
-                news: "Новини", top: "Топ", opt: "Опції", user: "Акаунт", lang: "Мова", theme: "Тема",
-                data: [
-                    ["Конкурент PulseVisual", "У PulseVisual з'явиться конкурент LightVisual"],
-                    ["Кастомний режим", "Тех.адмін каже про створення кастомного режиму"],
-                    ["Дедлі та RW", "Дедлі відкрив свою ReallyWorld"],
-                    ["Ютубери", "Zimmirik почав робити shorts"],
-                    ["AngelMine", "Відкрито копію ReallyWorld (Не підтверджено)"],
-                    ["Heim", "Heim пішов зі свого сервера StickWay"],
-                    ["MoreCube", "Чутки: проект зареєстрований у РФ іншою особою (Не підтверджено)"],
-                    ["Рекорд RW", "На ReallyWorld нещодавно був пік онлайну"],
-                    ["FunTime Топ-1", "FunTime став топ 1 сервером світу по онлайну"]
-                ]
-            },
-            en: {
-                news: "News", top: "Top", opt: "Options", user: "Account", lang: "Language", theme: "Theme",
-                data: [
-                    ["PulseVisual Rival", "LightVisual will be a rival to PulseVisual"],
-                    ["Custom Mode", "Tech admin talks about creating a custom mode"],
-                    ["Deadly & RW", "Deadly opened his ReallyWorld"],
-                    ["YouTubers", "Zimmirik started making shorts"],
-                    ["AngelMine", "Copy of ReallyWorld opened (Unconfirmed)"],
-                    ["Heim", "Heim left his server StickWay"],
-                    ["MoreCube", "Rumors: MoreCube registered in RU by someone else (Unconfirmed)"],
-                    ["RW Record", "ReallyWorld reached peak online recently"],
-                    ["FunTime Top-1", "FunTime became #1 server in the world by online"]
-                ]
+            ru: { news: "Новости", top: "Топ", opt: "Опции", user: "Аккаунт", lang: "Язык", theme: "Тема" },
+            ua: { news: "Новини", top: "Топ", opt: "Опції", user: "Акаунт", lang: "Мова", theme: "Тема" },
+            en: { news: "News", top: "Top", opt: "Options", user: "Account", lang: "Language", theme: "Theme" }
+        };
+
+        function loadData() {
+            db.ref('/').on('value', (snapshot) => {
+                const data = snapshot.val();
+                if (!data) return;
+                
+                renderNews(data.news || []);
+                renderServers(data.servers || []);
+            });
+        }
+
+        function renderNews(list) {
+            const cont = document.getElementById('news-list');
+            cont.innerHTML = '';
+            list.forEach((item, i) => {
+                cont.innerHTML += `
+                    <div class="card" data-index="${i}">
+                        <button class="del-btn" onclick="this.parentElement.remove()">X</button>
+                        <span class="server-title" contenteditable="${userTgId === ADMIN_ID}">${item.title}</span>
+                        <span class="server-sub" contenteditable="${userTgId === ADMIN_ID}">${item.desc}</span>
+                    </div>`;
+            });
+            checkAdmin();
+        }
+
+        function renderServers(list) {
+            const cont = document.getElementById('servers-list');
+            cont.innerHTML = '';
+            list.forEach((item, i) => {
+                cont.innerHTML += `
+                    <div class="card" data-index="${i}">
+                        <button class="del-btn" onclick="this.parentElement.remove()">X</button>
+                        <span class="server-title" contenteditable="${userTgId === ADMIN_ID}">${item.name}</span>
+                        <span class="server-sub" contenteditable="${userTgId === ADMIN_ID}">${item.type}</span>
+                        <span class="server-ip" contenteditable="${userTgId === ADMIN_ID}">${item.ip}</span>
+                    </div>`;
+            });
+            checkAdmin();
+        }
+
+        function addCard(type) {
+            const listId = type === 'news' ? 'news-list' : 'servers-list';
+            const cont = document.getElementById(listId);
+            const html = type === 'news' ? 
+                `<div class="card"><button class="del-btn" style="display:block" onclick="this.parentElement.remove()">X</button><span class="server-title" contenteditable="true">Заголовок</span><span class="server-sub" contenteditable="true">Описание</span></div>` :
+                `<div class="card"><button class="del-btn" style="display:block" onclick="this.parentElement.remove()">X</button><span class="server-title" contenteditable="true">Название</span><span class="server-sub" contenteditable="true">Гриф/Анка</span><span class="server-ip" contenteditable="true">0.0.0.0</span></div>`;
+            cont.insertAdjacentHTML('afterbegin', html);
+        }
+
+        function checkAdmin() {
+            if (userTgId === ADMIN_ID) {
+                document.querySelectorAll('.del-btn, .add-btn, .save-btn').forEach(el => el.style.display = 'block');
             }
+        }
+
+        document.getElementById('publish-btn').onclick = () => {
+            const news = [];
+            document.querySelectorAll('#news-list .card').forEach(c => {
+                news.push({ title: c.querySelector('.server-title').innerText, desc: c.querySelector('.server-sub').innerText });
+            });
+            const servers = [];
+            document.querySelectorAll('#servers-list .card').forEach(c => {
+                servers.push({ name: c.querySelector('.server-title').innerText, type: c.querySelector('.server-sub').innerText, ip: c.querySelector('.server-ip').innerText });
+            });
+            db.ref('/').set({ news, servers }).then(() => alert("Данные обновлены для всех!"));
         };
 
         function changeLang() {
@@ -199,24 +218,13 @@
             document.getElementById('label-user').innerText = t.user + ":";
             document.getElementById('label-lang').innerText = t.lang + ":";
             document.getElementById('label-theme').innerText = t.theme + ":";
-            
-            const newsCont = document.getElementById('news');
-            newsCont.innerHTML = '';
-            t.data.forEach(item => {
-                newsCont.innerHTML += `<div class="card"><span class="server-title">${item[0]}</span><span class="server-sub" style="color:var(--text-secondary)">${item[1]}</span></div>`;
-            });
         }
 
         function toggleTheme() {
             const b = document.body;
             const btn = document.getElementById('theme-btn');
-            if(b.classList.contains('dark-theme')) {
-                b.classList.replace('dark-theme', 'light-theme');
-                btn.innerText = 'LIGHT';
-            } else {
-                b.classList.replace('light-theme', 'dark-theme');
-                btn.innerText = 'DARK';
-            }
+            b.classList.toggle('light-theme');
+            btn.innerText = b.classList.contains('light-theme') ? 'LIGHT' : 'DARK';
         }
 
         function tab(id, el) {
@@ -227,13 +235,12 @@
         }
 
         window.onload = () => {
-            if (!tg.initDataUnsafe || !tg.initDataUnsafe.user) {
-                document.getElementById('access-error').style.display = 'flex';
-            } else {
+            if (tg.initDataUnsafe?.user) {
                 const u = tg.initDataUnsafe.user;
                 document.getElementById('user-info').innerText = `${u.first_name} (ID: ${u.id})`;
                 tg.expand();
             }
+            loadData();
             changeLang();
         };
     </script>
