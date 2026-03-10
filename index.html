@@ -2,159 +2,233 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Visuals Roulette</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>RuMine News</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
-        :root { --gold: #ffd700; --blue: #0088cc; --green: #2ecc71; --bg: #0f0f0f; }
-        body { background: var(--bg); color: white; font-family: 'Segoe UI', Tahoma, sans-serif; margin: 0; display: flex; flex-direction: column; align-items: center; }
+        :root {
+            --accent: #00e5ff;
+            --bg-main: #020202;
+            --surface: #0d0d0d;
+            --text-primary: #ffffff;
+            --text-secondary: #888888;
+            --border: rgba(255, 255, 255, 0.05);
+            --error: #ff3b3b;
+        }
+
+        body {
+            background: var(--bg-main);
+            color: var(--text-primary);
+            font-family: 'Montserrat', sans-serif;
+            margin: 0;
+            overflow-x: hidden;
+            -webkit-user-select: none;
+        }
+
+        /* Экран ошибки при входе не через ТГ */
+        #access-error {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: var(--bg-main);
+            z-index: 9999;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .error-icon { font-size: 50px; margin-bottom: 20px; }
+
+        /* Шапка */
+        .app-header {
+            position: sticky;
+            top: 0;
+            background: rgba(2, 2, 2, 0.9);
+            backdrop-filter: blur(20px);
+            padding: 18px;
+            z-index: 1000;
+            border-bottom: 1px solid var(--border);
+            text-align: center;
+        }
+
+        .app-header h1 {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 800;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            color: #fff;
+        }
+
+        /* Лента новостей */
+        .view-container { padding: 15px; padding-bottom: 90px; }
         
-        /* Профиль */
-        .profile-card { background: #1a1a1a; width: 90%; margin: 20px 0; padding: 15px; border-radius: 15px; border: 1px solid #333; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
-        .stats { display: flex; justify-content: space-around; font-size: 14px; margin-bottom: 10px; }
-        .stat-val { color: var(--gold); font-weight: bold; display: block; font-size: 18px; }
-        .reset-btn { background: transparent; border: 1px solid #444; color: #777; padding: 5px 10px; border-radius: 5px; cursor: pointer; font-size: 11px; }
+        .view-section { display: none; }
+        .view-section.active { display: block; animation: slideUp 0.3s ease; }
 
-        /* Рулетка */
-        .roulette-box { position: relative; width: 320px; height: 120px; border: 3px solid #333; border-radius: 12px; overflow: hidden; background: #000; margin: 20px 0; }
-        .pointer { position: absolute; left: 50%; top: 0; bottom: 0; width: 3px; background: red; z-index: 5; transform: translateX(-50%); box-shadow: 0 0 10px red; }
-        .tape { display: flex; position: absolute; left: 0; top: 0; transition: transform 5s cubic-bezier(0.1, 0, 0.1, 1); }
-        .slot { min-width: 80px; height: 120px; display: flex; flex-direction: column; align-items: center; justify-content: center; border-right: 1px solid #111; font-size: 10px; font-weight: bold; text-align: center; }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
 
-        /* Цвета предметов */
-        .win-year { background: linear-gradient(45deg, #443a00, #ffd700); color: black; }
-        .win-month { background: linear-gradient(45deg, #001f3f, #0088cc); }
-        .win-week { background: linear-gradient(45deg, #0a2e16, #2ecc71); }
-        .win-null { background: #222; color: #555; }
+        .news-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 16px;
+            margin-bottom: 12px;
+            position: relative;
+        }
 
-        .spin-button { background: var(--gold); color: black; border: none; padding: 18px 40px; font-size: 20px; font-weight: 800; border-radius: 50px; cursor: pointer; box-shadow: 0 0 20px rgba(255, 215, 0, 0.3); transition: 0.3s; width: 80%; }
-        .spin-button:disabled { background: #444; color: #888; transform: scale(0.95); box-shadow: none; }
+        .news-card::after {
+            content: '';
+            position: absolute;
+            top: 16px; left: 0;
+            width: 3px; height: 20px;
+            background: var(--accent);
+            box-shadow: 0 0 8px var(--accent);
+        }
+
+        .title { display: block; font-weight: 600; font-size: 14px; margin-bottom: 6px; }
+        .desc { font-size: 12px; color: var(--text-secondary); line-height: 1.5; }
+        .unconfirmed { color: #ffaa00; font-size: 10px; text-transform: uppercase; margin-top: 8px; display: block; }
+
+        /* Навигация */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0; width: 100%;
+            height: 65px;
+            background: #080808;
+            border-top: 1px solid var(--border);
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            z-index: 1001;
+        }
+
+        .nav-link {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-secondary);
+            font-size: 10px;
+            text-transform: uppercase;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .nav-link.active { color: var(--accent); }
+        .nav-icon { font-size: 18px; margin-bottom: 4px; }
+
+        /* Опции */
+        .user-box {
+            background: linear-gradient(145deg, #111, #080808);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid var(--border);
+        }
+
+        .uid { font-family: monospace; color: var(--accent); font-size: 16px; }
     </style>
 </head>
 <body>
 
-    <div class="profile-card">
-        <div class="stats">
-            <div>Траты: <span class="stat-val" id="totalSpent">0 ⭐</span></div>
-            <div>Побед: <span class="stat-val" id="winCount">0</span></div>
+    <div id="access-error">
+        <div class="error-icon">🚫</div>
+        <h2 style="color: var(--error)">ОШИБКА ДОСТУПА</h2>
+        <p style="color: var(--text-secondary)">Приложение доступно только через официальный бот Telegram.</p>
+    </div>
+
+    <header class="app-header">
+        <h1>RuMine News</h1>
+    </header>
+
+    <div class="view-container">
+        <div id="news" class="view-section active">
+            <div class="news-card">
+                <span class="title">Конкуренция PulseVisual</span>
+                <span class="desc">У PulseVisual скоро появится серьезный конкурент — проект LightVisual. Ждем битву стилей.</span>
+            </div>
+            <div class="news-card">
+                <span class="title">Кастомный режим</span>
+                <span class="desc">Неизвестный тех.админ сообщил о начале разработки уникального кастомного режима. Подробности держатся в секрете.</span>
+            </div>
+            <div class="news-card">
+                <span class="title">Запуск ReallyWorld от Дедли</span>
+                <span class="desc">Дедли официально подтвердил открытие своего ReallyWorld.</span>
+            </div>
+            <div class="news-card">
+                <span class="title">Zimmirik в Shorts</span>
+                <span class="desc">Популярный ютубер Zimmirik начал активно осваивать формат коротких видео.</span>
+            </div>
+            <div class="news-card">
+                <span class="title">Копия RW от AngelMine?</span>
+                <span class="desc">Владелец AngelMine запустил запасной сервер, который является полной копией ReallyWorld.</span>
+                <span class="unconfirmed">[ Не подтверждено ]</span>
+            </div>
+            <div class="news-card">
+                <span class="title">Heim покидает StickWay</span>
+                <span class="desc">Heim официально ушел со своего проекта StickWay. Что будет дальше — пока неизвестно.</span>
+            </div>
+            <div class="news-card">
+                <span class="title">Скандал с MoreCube</span>
+                <span class="desc">Ходят слухи, что бренд MoreCube был зарегистрирован в РФ посторонним лицом. Серверу грозит закрытие.</span>
+                <span class="unconfirmed">[ Не подтверждено ]</span>
+            </div>
+            <div class="news-card">
+                <span class="title">Рекорд ReallyWorld</span>
+                <span class="desc">На сервере зафиксирован новый пиковый онлайн за последнее время.</span>
+            </div>
+            <div class="news-card" style="border-color: gold;">
+                <span class="title">Мировой рекорд FunTime</span>
+                <span class="desc">В моменте FunTime стал топ-1 сервером всего мира по количеству игроков онлайн.</span>
+            </div>
         </div>
-        <button class="reset-btn" onclick="resetStats()">Обнулить профиль</button>
+
+        <div id="servers" class="view-section">
+            <div class="news-card"><span class="title">1. FunTime</span><span class="desc">Мировой лидер по онлайну.</span></div>
+            <div class="news-card"><span class="title">2. ReallyWorld</span><span class="desc">Классика гриферского выживания.</span></div>
+            <div class="news-card"><span class="title">3. AngelMine</span><span class="desc">Стабильный проект с историей.</span></div>
+        </div>
+
+        <div id="options" class="view-section">
+            <div class="user-box">
+                <p style="margin: 0 0 10px 0; font-size: 12px; color: var(--text-secondary);">Ваш Telegram ID:</p>
+                <span class="uid" id="user-id">Checking...</span>
+            </div>
+        </div>
     </div>
 
-    <div class="roulette-box">
-        <div class="pointer"></div>
-        <div id="tape" class="tape"></div>
-    </div>
-
-    <button id="spinBtn" class="spin-button" onclick="handlePayment()">КРУТИТЬ ЗА 15 ⭐</button>
-    <p id="msg" style="color: #888; margin-top: 15px;"></p>
+    <nav class="bottom-nav">
+        <div class="nav-link active" onclick="tab('news', this)"><span class="nav-icon">📰</span><span>Новости</span></div>
+        <div class="nav-link" onclick="tab('servers', this)"><span class="nav-icon">📊</span><span>Топ</span></div>
+        <div class="nav-link" onclick="tab('options', this)"><span class="nav-icon">⚙️</span><span>Опции</span></div>
+    </nav>
 
     <script>
         const tg = window.Telegram.WebApp;
-        tg.expand();
-        tg.ready();
 
-        let spent = parseInt(localStorage.getItem('spent')) || 0;
-        let wins = parseInt(localStorage.getItem('wins')) || 0;
-
-        function updateUI() {
-            document.getElementById('totalSpent').innerText = spent + " ⭐";
-            document.getElementById('winCount').innerText = wins;
-        }
-
-        const itemsData = [
-            { label: 'ГОД', class: 'win-year', chance: 30 },    // 3% (30 из 1000)
-            { label: '30 ДНЕЙ', class: 'win-month', chance: 50 }, // 5%
-            { label: '7 ДНЕЙ', class: 'win-week', chance: 70 },   // 7%
-            { label: 'ПУСТО', class: 'win-null', chance: 850 }    // 85%
-        ];
-
-        function createSlot(data) {
-            const div = document.createElement('div');
-            div.className = `slot ${data.class}`;
-            div.innerHTML = `<span>VISUALS</span><br><b>${data.label}</b>`;
-            return div;
-        }
-
-        function initTape() {
-            const tape = document.getElementById('tape');
-            tape.innerHTML = '';
-            for(let i=0; i<100; i++) {
-                const randomItem = itemsData[Math.floor(Math.random() * itemsData.length)];
-                tape.appendChild(createSlot(randomItem));
+        function checkAuth() {
+            // Если ID нет (открыто не в ТГ), показываем ошибку
+            if (!tg.initDataUnsafe || !tg.initDataUnsafe.user) {
+                document.getElementById('access-error').style.display = 'flex';
+            } else {
+                tg.expand();
+                document.getElementById('user-id').innerText = 'ID: ' + tg.initDataUnsafe.user.id;
             }
         }
 
-        async function handlePayment() {
-            // ВАЖНО: В реальном Telegram Web App вызов платежа идет через API бота (метод createInvoiceLink)
-            // Здесь мы имитируем процесс оплаты для визуализации
-            tg.showConfirm("Вы подтверждаете оплату 15 ⭐?", (confirmed) => {
-                if(confirmed) {
-                    spent += 15;
-                    localStorage.setItem('spent', spent);
-                    updateUI();
-                    startSpin();
-                }
-            });
+        function tab(id, el) {
+            document.querySelectorAll('.view-section').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            el.classList.add('active');
         }
 
-        function startSpin() {
-            const btn = document.getElementById('spinBtn');
-            const tape = document.getElementById('tape');
-            btn.disabled = true;
-
-            // Расчет результата
-            const rng = Math.floor(Math.random() * 1000);
-            let result;
-            if (rng < 30) result = itemsData[0]; // Год
-            else if (rng < 80) result = itemsData[1]; // Месяц
-            else if (rng < 150) result = itemsData[2]; // Неделя
-            else result = itemsData[3]; // Пусто
-
-            // Подменяем 80-й элемент (на него приземлится стрелка)
-            const targetIdx = 80;
-            const targetSlot = tape.children[targetIdx];
-            targetSlot.className = `slot ${result.class}`;
-            targetSlot.innerHTML = `<span>VISUALS</span><br><b>${result.label}</b>`;
-
-            // Анимация
-            const slotWidth = 80;
-            const finalPos = (targetIdx * slotWidth) - (160 - slotWidth/2);
-            const randomOffset = Math.floor(Math.random() * 50) - 25;
-            
-            tape.style.transition = 'none';
-            tape.style.transform = `translateX(0px)`;
-            
-            setTimeout(() => {
-                tape.style.transition = 'transform 5s cubic-bezier(0.1, 0, 0.1, 1)';
-                tape.style.transform = `translateX(-${finalPos + randomOffset}px)`;
-            }, 50);
-
-            setTimeout(() => {
-                if (result.label !== 'ПУСТО') {
-                    wins++;
-                    localStorage.setItem('wins', wins);
-                    tg.showAlert(`🔥 ПОЗДРАВЛЯЕМ! Вы выбили: ${result.label}`);
-                } else {
-                    document.getElementById('msg').innerText = "В этот раз не повезло...";
-                }
-                updateUI();
-                btn.disabled = false;
-                initTape();
-            }, 5500);
-        }
-
-        function resetStats() {
-            if(confirm("Обнулить все победы и траты?")) {
-                spent = 0;
-                wins = 0;
-                localStorage.clear();
-                updateUI();
-            }
-        }
-
-        updateUI();
-        initTape();
+        window.onload = checkAuth;
     </script>
 </body>
 </html>
