@@ -3,280 +3,179 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>FreeCube Service</title>
+    <title>Информация</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     <style>
-        :root { --bg: #080808; --card: #141414; --text: #ffffff; }
-        .light-theme { --bg: #f2f2f2; --card: #ffffff; --text: #000000; }
-        body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; transition: 0.2s; margin-bottom: 85px; }
-        .glass { background: var(--card); border: 1px solid rgba(255,255,255,0.05); border-radius: 20px; }
-        .nav-btn { flex: 1; text-align: center; padding: 12px; font-size: 10px; opacity: 0.3; transition: 0.3s; }
-        .nav-btn.active { opacity: 1; border-top: 2px solid var(--text); }
-        input { outline: none; transition: 0.2s; }
-        input:focus { border-color: #3b82f6 !important; }
-        #app-blocker { display: none; position: fixed; inset: 0; background: #000; z-index: 10000; flex-direction: column; align-items: center; justify-content: center; text-align: center; p: 20px; }
+        :root {
+            --bg-color: #f5f5f7;
+            --card-bg: #ffffff;
+            --text-color: #1c1c1e;
+            --accent-color: #007aff;
+            --nav-bg: #ffffff;
+        }
+        body.dark {
+            --bg-color: #000000;
+            --card-bg: #1c1c1e;
+            --text-color: #ffffff;
+            --accent-color: #0a84ff;
+            --nav-bg: #121212;
+        }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            margin: 0; padding: 0;
+            transition: background 0.3s;
+            padding-bottom: 70px;
+        }
+
+        /* Шапка */
+        .header { padding: 20px; text-align: center; font-size: 20px; font-weight: bold; border-bottom: 1px solid #ccc; }
+
+        /* Контентные секции */
+        .page { display: none; padding: 15px; }
+        .page.active { display: block; }
+
+        /* Админ-панель */
+        .admin-panel { 
+            display: none; 
+            background: var(--card-bg); 
+            padding: 15px; 
+            border-radius: 12px; 
+            margin-bottom: 20px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+
+        /* Карточки новостей */
+        .news-card { 
+            background: var(--card-bg); 
+            padding: 15px; 
+            border-radius: 12px; 
+            margin-bottom: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        .category { font-size: 12px; font-weight: bold; color: var(--accent-color); margin-bottom: 5px; text-transform: uppercase; }
+
+        /* Поля ввода */
+        select, textarea, button { 
+            width: 100%; margin: 8px 0; padding: 12px; 
+            border-radius: 8px; border: 1px solid #ccc; 
+            background: var(--card-bg); color: var(--text-color);
+            box-sizing: border-box; font-size: 14px;
+        }
+        button { background: var(--accent-color); color: white; border: none; font-weight: bold; cursor: pointer; }
+
+        /* Нижняя навигация */
+        .nav-bar {
+            position: fixed; bottom: 0; width: 100%; height: 60px;
+            background: var(--nav-bg); display: flex;
+            border-top: 1px solid #333; justify-content: space-around; align-items: center;
+        }
+        .nav-item { text-align: center; flex: 1; cursor: pointer; opacity: 0.6; font-size: 14px; }
+        .nav-item.active { opacity: 1; color: var(--accent-color); font-weight: bold; }
+
+        /* Опции */
+        .option-row { display: flex; justify-content: space-between; align-items: center; padding: 15px; background: var(--card-bg); border-radius: 12px; }
     </style>
 </head>
 <body>
 
-    <div id="app-blocker">
-        <h1 class="text-2xl font-bold mb-2">Access Denied</h1>
-        <p class="text-gray-500">This application only works inside<br>FreeCube Telegram Bot</p>
+    <div class="header">Информация</div>
+
+    <div id="page-info" class="page active">
+        <div id="adminPanel" class="admin-panel">
+            <strong>📢 Создать новость (Админ)</strong>
+            <select id="category">
+                <option value="Основа: Yarik_Grief">Основа: Yarik_Grief</option>
+                <option value="второй канал: Heim">второй канал: Heim</option>
+                <option value="Секрет....">Секрет....</option>
+            </select>
+            <textarea id="newsText" rows="3" placeholder="О чем ролик?"></textarea>
+            <button onclick="postNews()">Опубликовать</button>
+        </div>
+        <div id="newsFeed">Загрузка ленты...</div>
     </div>
 
-    <header class="p-6 flex justify-between items-center">
-        <span class="text-xl font-black tracking-widest uppercase">FreeCube</span>
-        <div id="adm-tag" class="hidden bg-white text-black text-[9px] px-2 py-1 rounded font-bold">ADMIN MODE</div>
-    </header>
-
-    <main id="tab-balance" class="px-5">
-        <div class="glass p-8 text-center mb-6">
-            <p class="text-[10px] text-gray-500 uppercase tracking-widest mb-1">Доступные средства</p>
-            <h2 class="text-5xl font-light"><span id="bal-val">0</span> <span class="text-lg opacity-40">К</span></h2>
+    <div id="page-options" class="page">
+        <h3>Настройки приложения</h3>
+        <div class="option-row" onclick="toggleTheme()">
+            <span>Сменить тему (Светлая/Темная)</span>
+            <span>🌓</span>
         </div>
+        <p style="text-align: center; font-size: 12px; opacity: 0.5; margin-top: 20px;">Версия 1.0.2</p>
+    </div>
 
-        <div id="admin-news-ctrl" class="hidden mb-4">
-            <button onclick="openModal('news')" class="w-full bg-zinc-800 text-white py-3 rounded-xl text-xs font-bold">+ Опубликовать новость</button>
-        </div>
-
-        <h3 class="text-sm font-bold text-gray-500 mb-3 uppercase px-2">Объявления</h3>
-        <div id="news-container" class="space-y-3"></div>
-    </main>
-
-    <main id="tab-shop" class="px-5 hidden">
-        <div class="flex justify-between items-center mb-5">
-            <h3 class="text-xl font-bold">Магазин</h3>
-            <button id="adm-add-item" onclick="openModal('item')" class="hidden bg-white text-black px-4 py-1 rounded-full text-xs font-bold">Создать товар</button>
-        </div>
-        <div id="shop-container" class="grid grid-cols-1 gap-3"></div>
-    </main>
-
-    <main id="tab-transfer" class="px-5 hidden text-center">
-        <h3 class="text-xl font-bold mb-6">Денежный перевод</h3>
-        <div class="glass p-6 text-left">
-            <label class="text-[10px] text-gray-500 uppercase ml-2">ID получателя (цифры)</label>
-            <input id="tr-id" type="number" class="w-full bg-black/40 border border-white/10 p-4 mt-1 mb-4 rounded-2xl text-white">
-            
-            <label class="text-[10px] text-gray-500 uppercase ml-2">Сумма Крони</label>
-            <input id="tr-amount" type="number" class="w-full bg-black/40 border border-white/10 p-4 mt-1 mb-6 rounded-2xl text-white">
-            
-            <button onclick="execTransfer()" class="w-full bg-white text-black py-4 rounded-2xl font-bold active:scale-95 transition">Подтвердить отправку</button>
-        </div>
-        <p class="text-[10px] text-gray-600 mt-4 px-4 text-center italic">Внимательно проверяйте ID. Отмена транзакции невозможна.</p>
-    </main>
-
-    <main id="tab-options" class="px-5 hidden">
-        <h3 class="text-xl font-bold mb-6">Настройки</h3>
-        <div class="glass p-5 mb-4">
-            <p id="prof-name" class="font-bold">Username</p>
-            <p id="prof-id" class="text-xs text-gray-500">ID: 00000000</p>
-        </div>
-
-        <div id="adm-give-ctrl" class="hidden mb-4">
-            <button onclick="openModal('give')" class="w-full bg-blue-600 text-white py-4 rounded-2xl font-bold text-sm">ВЫДАТЬ КРОНИ (ADMIN)</button>
-        </div>
-
-        <div class="glass p-5 space-y-4">
-            <select id="lang-sel" onchange="setLang(this.value)" class="w-full bg-transparent border-b border-white/10 p-2 text-sm">
-                <option value="ru" class="bg-zinc-900">🇷🇺 Русский</option>
-                <option value="ua" class="bg-zinc-900">🇺🇦 Українська</option>
-                <option value="en" class="bg-zinc-900">🇺🇸 English</option>
-            </select>
-            <button onclick="setTheme('dark')" class="w-full py-3 bg-zinc-900 rounded-xl text-xs border border-white/5">Dark Theme</button>
-            <button onclick="setTheme('light')" class="w-full py-3 bg-white text-black rounded-xl text-xs font-bold">Light Theme</button>
-        </div>
-    </main>
-
-    <nav class="fixed bottom-0 left-0 right-0 glass flex justify-around p-2 rounded-none border-t border-white/5 backdrop-blur-xl">
-        <div onclick="showTab('balance')" id="n-balance" class="nav-btn active">🪙<br>Счет</div>
-        <div onclick="showTab('shop')" id="n-shop" class="nav-btn">🛒<br>Магазин</div>
-        <div onclick="showTab('transfer')" id="n-transfer" class="nav-btn">💸<br>Перевод</div>
-        <div onclick="showTab('options')" id="n-options" class="nav-btn">⚙️<br>Опции</div>
-    </nav>
-
-    <div id="modal" class="fixed inset-0 bg-black/95 flex items-center justify-center p-6 hidden z-[999]">
-        <div class="glass p-6 w-full max-w-sm border-white/20">
-            <h3 id="m-title" class="text-lg font-bold mb-5">Admin Action</h3>
-            <input id="m-v1" type="text" placeholder="..." class="w-full bg-white/5 border border-white/10 p-4 mb-3 rounded-xl">
-            <input id="m-v2" type="number" placeholder="..." class="w-full bg-white/5 border border-white/10 p-4 mb-6 rounded-xl">
-            <div class="flex gap-3">
-                <button onclick="processAdmin()" class="bg-white text-black flex-1 py-3 rounded-xl font-bold">Выполнить</button>
-                <button onclick="closeModal()" class="flex-1 py-3 text-sm opacity-50">Закрыть</button>
-            </div>
-        </div>
+    <div class="nav-bar">
+        <div class="nav-item active" id="btn-info" onclick="showPage('info')">📰 Информация</div>
+        <div class="nav-item" id="btn-options" onclick="showPage('options')">⚙️ Опции</div>
     </div>
 
     <script>
-        // ИНИЦИАЛИЗАЦИЯ (ТВОИ ДАННЫЕ)
+        // Твои настройки Firebase
         const firebaseConfig = {
             apiKey: "AIzaSyA-tvZ6EUAD_QqmPlpBzXJDyr3ra_VQ-Ws",
+            appId: "1:744143799736:web:ea39151db70f2d62c4bb4d",
             databaseURL: "https://ruminenewsbot-default-rtdb.firebaseio.com",
-            projectId: "ruminenewsbot",
-            appId: "1:744143799736:web:ea39151db70f2d62c4bb4d"
+            projectId: "ruminenewsbot"
         };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
         const tg = window.Telegram.WebApp;
-        const ADMIN_ID = 6086871004;
-        const BOT_TOKEN = "ВАШ_ТОКЕН_БОТА"; // Чтобы бот писал в ЛС при покупке
+        tg.expand();
 
-        // Безопасная проверка пользователя
-        if(!tg.initDataUnsafe || !tg.initDataUnsafe.user) {
-            document.getElementById('app-blocker').style.display = 'flex';
+        // Проверка прав админа
+        const adminId = 6086871004;
+        if (tg.initDataUnsafe?.user?.id === adminId) {
+            document.getElementById('adminPanel').style.display = 'block';
         }
 
-        const user = tg.initDataUnsafe?.user || { id: 0, first_name: "Unknown" };
-        const isAdm = (user.id == ADMIN_ID);
-        let myBal = 0;
+        // Переключение вкладок
+        function showPage(pageId) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+            
+            document.getElementById('page-' + pageId).classList.add('active');
+            document.getElementById('btn-' + pageId).classList.add('active');
+        }
 
-        function start() {
-            tg.ready();
-            tg.expand();
-            document.getElementById('prof-name').innerText = user.first_name;
-            document.getElementById('prof-id').innerText = "ID: " + user.id;
+        // Смена темы
+        function toggleTheme() {
+            document.body.classList.toggle('dark');
+        }
 
-            if(isAdm) {
-                document.getElementById('adm-tag').classList.remove('hidden');
-                document.getElementById('admin-news-ctrl').classList.remove('hidden');
-                document.getElementById('adm-add-item').classList.remove('hidden');
-                document.getElementById('adm-give-ctrl').classList.remove('hidden');
-            }
+        // Публикация новости
+        function postNews() {
+            const text = document.getElementById('newsText').value;
+            const cat = document.getElementById('category').value;
+            if(!text) return;
 
-            // Real-time баланс
-            db.ref('users/' + user.id).on('value', snap => {
-                const data = snap.val();
-                myBal = data ? (data.kroni || 0) : 0;
-                document.getElementById('bal-val').innerText = myBal.toLocaleString();
-                if(!data) db.ref('users/' + user.id).set({ name: user.first_name, kroni: 0 });
+            db.ref('news').push({
+                text: text,
+                category: cat,
+                timestamp: Date.now()
             });
-
-            // Загрузка контента
-            db.ref('news').on('value', s => renderNews(s.val()));
-            db.ref('shop').on('value', s => renderShop(s.val()));
-            setTheme(localStorage.getItem('fc_theme') || 'dark');
-        }
-
-        function renderNews(data) {
-            const container = document.getElementById('news-container');
-            container.innerHTML = "";
-            for(let key in data) {
-                container.innerHTML += `
-                    <div class="glass p-4 text-sm relative">
-                        ${data[key].text}
-                        ${isAdm ? `<button onclick="db.ref('news/${key}').remove()" class="absolute top-2 right-2 text-red-500">✕</button>` : ''}
-                    </div>`;
-            }
-        }
-
-        function renderShop(data) {
-            const container = document.getElementById('shop-container');
-            container.innerHTML = "";
-            for(let key in data) {
-                const item = data[key];
-                container.innerHTML += `
-                    <div class="glass p-5 flex justify-between items-center">
-                        <div>
-                            <p class="font-bold uppercase tracking-tighter">${item.name}</p>
-                            <p class="text-xs text-gray-500">${item.price} Крони</p>
-                        </div>
-                        <div class="flex gap-2">
-                            <button onclick="buyItem('${key}', '${item.name}', ${item.price})" class="bg-white text-black px-5 py-2 rounded-xl text-xs font-bold">Купить</button>
-                            ${isAdm ? `<button onclick="db.ref('shop/${key}').remove()" class="text-red-500 p-2">🗑️</button>` : ''}
-                        </div>
-                    </div>`;
-            }
-        }
-
-        async function execTransfer() {
-            const target = document.getElementById('tr-id').value;
-            const amount = parseInt(document.getElementById('tr-amount').value);
-
-            if(!target || amount <= 0 || amount > myBal) {
-                tg.showAlert("Ошибка: неверная сумма или ID получателя.");
-                return;
-            }
-
-            const targetRef = db.ref('users/' + target);
-            const tSnap = await targetRef.get();
-
-            if(!tSnap.exists()) {
-                tg.showAlert("Пользователь с таким ID никогда не заходил в приложение.");
-                return;
-            }
-
-            // Атомарная транзакция
-            db.ref('users/' + user.id + '/kroni').set(myBal - amount);
-            db.ref('users/' + target + '/kroni').transaction(c => (c || 0) + amount);
-            
-            tg.showAlert("Перевод успешно выполнен!");
+            document.getElementById('newsText').value = "";
             tg.HapticFeedback.notificationOccurred('success');
-            document.getElementById('tr-id').value = '';
-            document.getElementById('tr-amount').value = '';
         }
 
-        async function buyItem(key, name, price) {
-            if(myBal < price) {
-                tg.showAlert("Недостаточно Крони на балансе.");
-                return;
-            }
-
-            // Уведомление тебе в ТГ
-            const report = `🛒 ПОКУПКА\nТовар: ${name}\nЦена: ${price}\nПокупатель: ${user.first_name} (ID: ${user.id})`;
-            fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${ADMIN_ID}&text=${encodeURIComponent(report)}`);
-
-            db.ref('users/' + user.id + '/kroni').set(myBal - price);
-            tg.showConfirm("Покупка совершена! Напишите админу для получения товара, если это требуется.");
-        }
-
-        // ADMIN MODAL LOGIC
-        let curMode = '';
-        function openModal(mode) {
-            if(!isAdm) return;
-            curMode = mode;
-            const m = document.getElementById('modal');
-            const v1 = document.getElementById('m-v1');
-            const v2 = document.getElementById('m-v2');
-            m.classList.remove('hidden');
+        // Получение данных
+        db.ref('news').on('value', (snapshot) => {
+            const feed = document.getElementById('newsFeed');
+            feed.innerHTML = "";
+            let items = [];
+            snapshot.forEach((child) => { items.push(child.val()); });
             
-            if(mode === 'news') { v1.placeholder = "Текст новости"; v2.classList.add('hidden'); }
-            if(mode === 'item') { v1.placeholder = "Название товара"; v2.placeholder = "Цена"; v2.classList.remove('hidden'); }
-            if(mode === 'give') { v1.placeholder = "ID игрока"; v2.placeholder = "Сколько выдать"; v2.classList.remove('hidden'); }
-        }
-
-        function closeModal() { document.getElementById('modal').classList.add('hidden'); }
-
-        function processAdmin() {
-            const v1 = document.getElementById('m-v1').value;
-            const v2 = document.getElementById('m-v2').value;
-
-            if(curMode === 'news') db.ref('news').push({ text: v1 });
-            if(curMode === 'item') db.ref('shop').push({ name: v1, price: parseInt(v2) });
-            if(curMode === 'give') db.ref('users/' + v1 + '/kroni').transaction(c => (c || 0) + parseInt(v2));
-            
-            closeModal();
-            document.getElementById('m-v1').value = '';
-            document.getElementById('m-v2').value = '';
-        }
-
-        function showTab(name) {
-            document.querySelectorAll('main').forEach(m => m.classList.add('hidden'));
-            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-            document.getElementById('tab-' + name).classList.remove('hidden');
-            document.getElementById('n-' + name).classList.add('active');
-            tg.HapticFeedback.impactOccurred('light');
-        }
-
-        function setTheme(t) {
-            document.body.className = (t === 'light' ? 'light-theme' : '');
-            localStorage.setItem('fc_theme', t);
-            tg.setHeaderColor(t === 'light' ? '#f2f2f2' : '#080808');
-        }
-
-        start();
+            items.reverse().forEach(data => {
+                feed.innerHTML += `
+                    <div class="news-card">
+                        <div class="category">${data.category}</div>
+                        <div class="text">${data.text}</div>
+                    </div>`;
+            });
+        });
     </script>
 </body>
 </html>
