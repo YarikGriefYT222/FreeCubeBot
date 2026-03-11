@@ -3,198 +3,324 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>RuMine News</title>
+    <title>RuMine News Elite</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
-        :root { --accent: #00e5ff; --bg-main: #020202; --surface: #0d0d0d; --text-primary: #ffffff; --text-secondary: #888888; --border: rgba(255, 255, 255, 0.05); }
-        body.light-theme { --bg-main: #f0f2f5; --surface: #ffffff; --text-primary: #1a1a1a; --text-secondary: #65676b; --border: rgba(0, 0, 0, 0.1); }
-        body { background: var(--bg-main); color: var(--text-primary); font-family: 'Montserrat', sans-serif; margin: 0; transition: 0.3s; overflow-x: hidden; }
-        #access-error { display: none; position: fixed; inset: 0; background: #000; z-index: 9999; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
-        .app-header { position: sticky; top: 0; background: var(--bg-main); padding: 18px; border-bottom: 1px solid var(--border); text-align: center; z-index: 1000; }
-        .view-container { padding: 15px; padding-bottom: 100px; }
-        .view-section { display: none; }
-        .view-section.active { display: block; animation: fadeIn 0.3s; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 16px; margin-bottom: 12px; position: relative; }
-        .server-title { font-weight: 800; font-size: 16px; display: block; color: var(--accent); }
-        .server-sub { font-size: 13px; display: block; margin-top: 4px; }
-        .server-ip { font-family: monospace; font-size: 12px; color: var(--accent); background: rgba(0,229,255,0.1); padding: 4px 8px; border-radius: 6px; display: inline-block; margin-top: 8px; }
-        .bottom-nav { position: fixed; bottom: 0; width: 100%; height: 65px; background: var(--surface); border-top: 1px solid var(--border); display: grid; grid-template-columns: repeat(3, 1fr); z-index: 1001; }
-        .nav-link { display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-secondary); font-size: 10px; font-weight: 600; cursor: pointer; }
-        .nav-link.active { color: var(--accent); }
-        .opt-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border); }
-        select, .btn-theme, .admin-btn { background: var(--accent); border: none; padding: 10px 15px; border-radius: 10px; font-weight: 800; cursor: pointer; color: #000; }
-        .del-btn { position: absolute; top: 10px; right: 10px; background: #ff4444; color: #fff; border: none; border-radius: 8px; width: 25px; height: 25px; font-weight: bold; display: none; }
-        .save-btn { width: 100%; margin-top: 20px; background: #00ff88; display: none; }
-        .add-btn { width: 100%; margin-bottom: 15px; background: var(--accent); display: none; }
+        :root {
+            --accent: #00f2ff;
+            --accent-glow: rgba(0, 242, 255, 0.3);
+            --bg: #050505;
+            --card-bg: rgba(20, 20, 20, 0.6);
+            --border: rgba(255, 255, 255, 0.08);
+            --text: #ffffff;
+            --text-dim: #94a3b8;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            margin: 0;
+            overflow-x: hidden;
+            background-image: radial-gradient(circle at top right, #003344, transparent), radial-gradient(circle at bottom left, #110022, transparent);
+            background-attachment: fixed;
+            min-height: 100vh;
+        }
+
+        #access-error { display: none; position: fixed; inset: 0; background: #000; z-index: 10000; flex-direction: column; align-items: center; justify-content: center; }
+
+        .header {
+            padding: 25px 20px;
+            text-align: center;
+            background: rgba(0,0,0,0.4);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border);
+            position: sticky; top: 0; z-index: 1000;
+        }
+
+        .header h1 {
+            margin: 0; font-size: 20px; font-weight: 800; letter-spacing: 3px;
+            text-transform: uppercase; background: linear-gradient(to right, #fff, var(--accent));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+
+        /* Категории (Чипсы) */
+        .filter-bar {
+            display: flex; gap: 10px; padding: 15px 20px; overflow-x: auto;
+            scrollbar-width: none;
+        }
+        .filter-bar::-webkit-scrollbar { display: none; }
+        
+        .chip {
+            padding: 8px 18px; border-radius: 20px; background: var(--card-bg);
+            border: 1px solid var(--border); font-size: 12px; font-weight: 600;
+            white-space: nowrap; transition: 0.3s; color: var(--text-dim);
+        }
+        .chip.active {
+            background: var(--accent); color: #000; border-color: var(--accent);
+            box-shadow: 0 0 15px var(--accent-glow);
+        }
+
+        .container { padding: 0 20px 120px 20px; }
+        .view { display: none; }
+        .view.active { display: block; animation: slideUp 0.4s ease-out; }
+
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+        .card {
+            background: var(--card-bg); backdrop-filter: blur(12px);
+            border: 1px solid var(--border); border-radius: 20px;
+            padding: 20px; margin-bottom: 15px; position: relative;
+            transition: 0.3s;
+        }
+
+        .card:active { transform: scale(0.98); }
+
+        .tag {
+            font-size: 10px; font-weight: 800; text-transform: uppercase;
+            color: var(--accent); margin-bottom: 8px; display: block;
+        }
+
+        .title { font-size: 17px; font-weight: 700; margin-bottom: 6px; display: block; }
+        .desc { font-size: 14px; color: var(--text-dim); line-height: 1.5; }
+        .ip-box {
+            margin-top: 15px; padding: 10px; background: rgba(0,0,0,0.3);
+            border-radius: 12px; border: 1px solid var(--border);
+            font-family: monospace; color: var(--accent); display: flex; justify-content: space-between;
+        }
+
+        /* Навигация */
+        .nav {
+            position: fixed; bottom: 20px; left: 20px; right: 20px;
+            background: rgba(15, 15, 15, 0.8); backdrop-filter: blur(20px);
+            border: 1px solid var(--border); border-radius: 25px;
+            height: 70px; display: grid; grid-template-columns: repeat(3, 1fr);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5); z-index: 1000;
+        }
+
+        .nav-item {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            color: var(--text-dim); font-size: 10px; font-weight: 700; gap: 4px;
+        }
+        .nav-item.active { color: var(--accent); }
+
+        /* Админ-кнопки */
+        .admin-btn { background: var(--accent); color: #000; border: none; padding: 12px; border-radius: 15px; font-weight: 800; width: 100%; margin-bottom: 15px; display: none; }
+        .del-btn { position: absolute; top: 15px; right: 15px; background: #ff3355; color: #fff; border: none; border-radius: 50%; width: 24px; height: 24px; font-size: 12px; display: none; }
+        
+        .edit-area { background: transparent; border: 1px dashed var(--accent); color: #fff; width: 100%; padding: 5px; margin: 2px 0; border-radius: 5px; }
     </style>
 </head>
-<body class="dark-theme">
+<body>
 
     <div id="access-error">
-        <h2 style="color: red; font-weight: 800;">ACCESS DENIED</h2>
-        <p style="color: white">Open via Telegram Bot</p>
+        <h1 style="color:var(--accent)">RESTRICTED</h1>
+        <p>Open via RuMine News Bot</p>
     </div>
 
-    <header class="app-header">
-        <h1 style="margin:0; font-size: 18px; letter-spacing: 2px;">RUMINE <span style="color:var(--accent)">NEWS</span></h1>
-    </header>
+    <div class="header">
+        <h1>RuMine Elite</h1>
+    </div>
 
-    <div class="view-container">
-        <div id="news" class="view-section active">
-            <button class="admin-btn add-btn" id="add-news-btn" onclick="addCard('news')">+ ДОБАВИТЬ</button>
-            <div id="news-list">Загрузка...</div>
+    <div id="filter-container" class="filter-bar">
         </div>
-        <div id="servers" class="view-section">
-            <button class="admin-btn add-btn" id="add-srv-btn" onclick="addCard('servers')">+ ДОБАВИТЬ</button>
-            <div id="servers-list">Загрузка...</div>
+
+    <div class="container">
+        <div id="news" class="view active">
+            <button class="admin-btn" id="add-news-btn" onclick="addNewItem('news')">+ НОВАЯ НОВОСТЬ</button>
+            <div id="news-list"></div>
         </div>
-        <div id="options" class="view-section">
+
+        <div id="servers" class="view">
+            <button class="admin-btn" id="add-srv-btn" onclick="addNewItem('servers')">+ НОВЫЙ СЕРВЕР</button>
+            <div id="servers-list"></div>
+        </div>
+
+        <div id="options" class="view">
             <div class="card">
-                <div class="opt-row"><span id="txt-acc">Аккаунт:</span><span id="user-info" style="color: var(--accent);">...</span></div>
-                <div class="opt-row"><span id="txt-lang">Язык:</span>
-                    <select id="lang-select" onchange="updateUILanguage()">
+                <div class="opt-row" style="display:flex; justify-content: space-between; margin-bottom: 20px;">
+                    <span style="color:var(--text-dim)">ID:</span>
+                    <span id="user-id" style="color:var(--accent)">...</span>
+                </div>
+                <div style="margin-bottom: 20px;">
+                    <label style="display:block; margin-bottom:10px; font-size:12px; font-weight:800; color:var(--text-dim)">LANGUAGE / ЯЗЫК</label>
+                    <select id="lang-select" onchange="changeLanguage()" style="width:100%; padding:12px; background:var(--bg); color:#fff; border:1px solid var(--border); border-radius:12px;">
                         <option value="ru">Русский</option>
                         <option value="ua">Українська</option>
                         <option value="en">English</option>
                     </select>
                 </div>
-                <div class="opt-row"><span id="txt-theme">Тема:</span><button class="btn-theme" onclick="toggleTheme()" id="theme-btn">DARK</button></div>
-                <button id="publish-btn" class="admin-btn save-btn">ОПУБЛИКОВАТЬ</button>
+                <button id="save-all" class="admin-btn" style="background:#00ff88" onclick="saveToFirebase()">СОХРАНИТЬ ВСЕ ЯЗЫКИ</button>
             </div>
         </div>
     </div>
 
-    <nav class="bottom-nav">
-        <div class="nav-link active" onclick="tab('news', this)" id="nav-news">НОВОСТИ</div>
-        <div class="nav-link" onclick="tab('servers', this)" id="nav-top">ТОП</div>
-        <div class="nav-link" onclick="tab('options', this)" id="nav-opt">ОПЦИИ</div>
+    <nav class="nav">
+        <div class="nav-item active" onclick="tab('news', this)" id="n-news">НОВОСТИ</div>
+        <div class="nav-item" onclick="tab('servers', this)" id="n-top">ТОП</div>
+        <div class="nav-item" onclick="tab('options', this)" id="n-opt">ОПЦИИ</div>
     </nav>
 
     <script>
         const firebaseConfig = {
             apiKey: "AIzaSyA-tvZ6EUAD_QqmPlpBzXJDyr3ra_VQ-Ws",
-            databaseURL: "https://ruminenewsbot-default-rtdb.europe-west1.firebasedatabase.app/", 
-            projectId: "ruminenewsbot",
+            databaseURL: "https://ruminenewsbot-default-rtdb.europe-west1.firebasedatabase.app/",
+            projectId: "ruminenewsbot"
         };
-
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
         const tg = window.Telegram.WebApp;
         const ADMIN_ID = 6086871004;
+        
+        let currentLang = 'ru';
         let currentUserId = 0;
+        let currentFilter = 'Все';
+        let allData = { ru: { news: [], servers: [] }, ua: { news: [], servers: [] }, en: { news: [], servers: [] } };
 
-        const langData = {
-            ru: { news: "НОВОСТИ", top: "ТОП", opt: "ОПЦИИ", acc: "Аккаунт:", lang: "Язык:", theme: "Тема:", add: "+ ДОБАВИТЬ", save: "СОХРАНИТЬ", first: "СОЗДАТЬ ДАННЫЕ" },
-            ua: { news: "НОВИНИ", top: "ТОП", opt: "ОПЦІЇ", acc: "Акаунт:", lang: "Мова:", theme: "Тема:", add: "+ ДОДАТИ", save: "ЗБЕРЕГТИ", first: "СТВОРИТИ ДАНІ" },
-            en: { news: "NEWS", top: "TOP", opt: "OPTIONS", acc: "Account:", lang: "Language:", theme: "Theme:", add: "+ ADD NEW", save: "PUBLISH", first: "CREATE DATA" }
+        const translations = {
+            ru: { n: "НОВОСТИ", t: "ТОП", o: "ОПЦИИ", cat_n: ["Все", "Сервера", "Ютуберы"], cat_s: ["Все", "Гриф", "Анархия"] },
+            ua: { n: "НОВИНИ", t: "ТОП", o: "ОПЦІЇ", cat_n: ["Все", "Сервера", "Ютубери"], cat_s: ["Все", "Гриф", "Анархія"] },
+            en: { n: "NEWS", t: "TOP", o: "OPTIONS", cat_n: ["All", "Servers", "YouTubers"], cat_s: ["All", "Grief", "Anarchy"] }
         };
 
-        function updateUILanguage() {
-            const l = document.getElementById('lang-select').value;
-            const t = langData[l];
-            document.getElementById('nav-news').innerText = t.news;
-            document.getElementById('nav-top').innerText = t.top;
-            document.getElementById('nav-opt').innerText = t.opt;
-            document.getElementById('txt-acc').innerText = t.acc;
-            document.getElementById('txt-lang').innerText = t.lang;
-            document.getElementById('txt-theme').innerText = t.theme;
-            document.getElementById('add-news-btn').innerText = t.add;
-            document.getElementById('add-srv-btn').innerText = t.add;
-            document.getElementById('publish-btn').innerText = t.save;
+        function changeLanguage() {
+            currentLang = document.getElementById('lang-select').value;
+            currentFilter = translations[currentLang].cat_n[0]; // Сброс фильтра
+            updateUI();
+        }
+
+        function updateUI() {
+            const T = translations[currentLang];
+            document.getElementById('n-news').innerText = T.n;
+            document.getElementById('n-top').innerText = T.t;
+            document.getElementById('n-opt').innerText = T.o;
+            
+            renderFilters();
+            renderContent();
+        }
+
+        function renderFilters() {
+            const isNews = document.getElementById('news').classList.contains('active');
+            const cats = isNews ? translations[currentLang].cat_n : translations[currentLang].cat_s;
+            const cont = document.getElementById('filter-container');
+            cont.innerHTML = '';
+            
+            cats.forEach(cat => {
+                const activeClass = (cat === currentFilter) ? 'active' : '';
+                cont.innerHTML += `<div class="chip ${activeClass}" onclick="setFilter('${cat}')">${cat}</div>`;
+            });
+        }
+
+        function setFilter(f) {
+            currentFilter = f;
+            renderFilters();
+            renderContent();
         }
 
         function loadData() {
-            db.ref('/').on('value', (snapshot) => {
-                const data = snapshot.val();
-                if (!data) {
-                    if (currentUserId == ADMIN_ID) {
-                        document.getElementById('news-list').innerHTML = `<center><button class="admin-btn" style="display:block; margin-top:20px" onclick="createFirstData()">СОЗДАТЬ ДАННЫЕ</button></center>`;
-                    } else {
-                        document.getElementById('news-list').innerHTML = '<center>Empty</center>';
-                    }
-                    return;
+            db.ref('/').on('value', (snap) => {
+                const data = snap.val();
+                if (data) {
+                    allData = data;
+                    updateUI();
                 }
-                renderNews(data.news || []);
-                renderServers(data.servers || []);
             });
         }
 
-        function createFirstData() {
-            db.ref('/').set({
-                news: [{ title: "Привет!", desc: "Это первая новость Ярослава" }],
-                servers: [{ name: "Heim Server", type: "Гриф", ip: "play.heim.ru" }]
+        function renderContent() {
+            const isNews = document.getElementById('news').classList.contains('active');
+            const listCont = isNews ? document.getElementById('news-list') : document.getElementById('servers-list');
+            listCont.innerHTML = '';
+
+            const items = allData[currentLang][isNews ? 'news' : 'servers'] || [];
+            
+            items.forEach((item, idx) => {
+                // Фильтрация
+                const allText = isNews ? translations[currentLang].cat_n[0] : translations[currentLang].cat_s[0];
+                if (currentFilter !== allText && item.cat !== currentFilter) return;
+
+                let html = `<div class="card">
+                    <button class="del-btn" onclick="deleteItem('${isNews ? 'news' : 'servers'}', ${idx})">✕</button>
+                    <span class="tag">${item.cat}</span>`;
+                
+                if (isNews) {
+                    html += `<span class="title" contenteditable="${currentUserId == ADMIN_ID}" id="edit-t-${idx}">${item.title}</span>
+                             <span class="desc" contenteditable="${currentUserId == ADMIN_ID}" id="edit-d-${idx}">${item.desc}</span>`;
+                } else {
+                    html += `<span class="title">${item.name}</span>
+                             <span class="desc" contenteditable="${currentUserId == ADMIN_ID}" id="edit-tp-${idx}">${item.type}</span>
+                             <div class="ip-box"><span contenteditable="${currentUserId == ADMIN_ID}" id="edit-ip-${idx}">${item.ip}</span></div>`;
+                }
+                html += `</div>`;
+                listCont.insertAdjacentHTML('beforeend', html);
             });
+            checkAdmin();
         }
 
-        function renderNews(list) {
-            const cont = document.getElementById('news-list'); cont.innerHTML = '';
-            list.forEach(n => {
-                cont.innerHTML += `<div class="card"><button class="del-btn" onclick="this.parentElement.remove()">✕</button>
-                <span class="server-title" contenteditable="${currentUserId == ADMIN_ID}">${n.title}</span>
-                <span class="server-sub" contenteditable="${currentUserId == ADMIN_ID}">${n.desc}</span></div>`;
+        function addNewItem(type) {
+            const newItem = type === 'news' 
+                ? { cat: "Сервера", title: "Заголовок", desc: "Описание" }
+                : { cat: "Гриф", name: "Название", type: "Гриф/Анка", ip: "0.0.0.0" };
+            
+            // Добавляем во все языки (пустышки)
+            ['ru', 'ua', 'en'].forEach(l => {
+                if (!allData[l][type]) allData[l][type] = [];
+                allData[l][type].unshift(newItem);
             });
-            checkAdminUI();
+            renderContent();
         }
 
-        function renderServers(list) {
-            const cont = document.getElementById('servers-list'); cont.innerHTML = '';
-            list.forEach(s => {
-                cont.innerHTML += `<div class="card"><button class="del-btn" onclick="this.parentElement.remove()">✕</button>
-                <span class="server-title" contenteditable="${currentUserId == ADMIN_ID}">${s.name}</span>
-                <span class="server-sub" contenteditable="${currentUserId == ADMIN_ID}">${s.type}</span>
-                <span class="server-ip" contenteditable="${currentUserId == ADMIN_ID}">${s.ip}</span></div>`;
+        function deleteItem(type, idx) {
+            ['ru', 'ua', 'en'].forEach(l => allData[l][type].splice(idx, 1));
+            renderContent();
+        }
+
+        function saveToFirebase() {
+            // Перед сохранением обновляем данные из contenteditable текущего языка
+            const isNews = document.getElementById('news').classList.contains('active');
+            const type = isNews ? 'news' : 'servers';
+            
+            allData[currentLang][type].forEach((item, idx) => {
+                if (isNews) {
+                    item.title = document.getElementById(`edit-t-${idx}`).innerText;
+                    item.desc = document.getElementById(`edit-d-${idx}`).innerText;
+                } else {
+                    item.type = document.getElementById(`edit-tp-${idx}`).innerText;
+                    item.ip = document.getElementById(`edit-ip-${idx}`).innerText;
+                }
             });
-            checkAdminUI();
+
+            db.ref('/').set(allData).then(() => alert("Elite Cloud Sync: Success!"));
         }
 
-        function addCard(type) {
-            const cont = document.getElementById(type + '-list');
-            const html = type === 'news' ? 
-                `<div class="card"><button class="del-btn" style="display:block" onclick="this.parentElement.remove()">✕</button><span class="server-title" contenteditable="true">Title</span><span class="server-sub" contenteditable="true">Text</span></div>` :
-                `<div class="card"><button class="del-btn" style="display:block" onclick="this.parentElement.remove()">✕</button><span class="server-title" contenteditable="true">Server</span><span class="server-sub" contenteditable="true">Grief</span><span class="server-ip" contenteditable="true">0.0.0.0</span></div>`;
-            cont.insertAdjacentHTML('afterbegin', html);
-        }
-
-        function checkAdminUI() {
+        function checkAdmin() {
             if (currentUserId == ADMIN_ID) {
-                document.querySelectorAll('.del-btn, .add-btn, .save-btn').forEach(el => el.style.display = 'block');
+                document.querySelectorAll('.admin-btn, .del-btn').forEach(el => el.style.display = 'block');
             }
         }
 
-        document.getElementById('publish-btn').onclick = () => {
-            const news = []; document.querySelectorAll('#news-list .card').forEach(c => {
-                news.push({ title: c.querySelector('.server-title').innerText, desc: c.querySelector('.server-sub').innerText });
-            });
-            const servers = []; document.querySelectorAll('#servers-list .card').forEach(c => {
-                servers.push({ name: c.querySelector('.server-title').innerText, type: c.querySelector('.server-sub').innerText, ip: c.querySelector('.server-ip').innerText });
-            });
-            db.ref('/').set({ news, servers }).then(() => alert("✅ Опубликовано!"));
-        };
-
-        function toggleTheme() { document.body.classList.toggle('light-theme'); }
-        function tab(id, el) {
-            document.querySelectorAll('.view-section').forEach(s => s.classList.remove('active'));
-            document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-            document.getElementById(id).classList.add('active'); el.classList.add('active');
+        function tab(v, el) {
+            document.querySelectorAll('.view').forEach(x => x.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(x => x.classList.remove('active'));
+            document.getElementById(v).classList.add('active');
+            el.classList.add('active');
+            currentFilter = (v === 'news') ? translations[currentLang].cat_n[0] : translations[currentLang].cat_s[0];
+            updateUI();
         }
 
         window.onload = () => {
-            if (!tg.initDataUnsafe || Object.keys(tg.initDataUnsafe).length === 0) {
+            if (!tg.initDataUnsafe || !tg.initDataUnsafe.user) {
+                // Для теста на ПК закомментируй строку ниже
                 document.getElementById('access-error').style.display = 'flex';
-                return;
-            }
-            if (tg.initDataUnsafe.user) {
+            } else {
                 currentUserId = tg.initDataUnsafe.user.id;
-                document.getElementById('user-info').innerText = tg.initDataUnsafe.user.first_name;
+                document.getElementById('user-id').innerText = currentUserId;
             }
             tg.expand();
-            updateUILanguage();
             loadData();
-            checkAdminUI();
         };
     </script>
 </body>
