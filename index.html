@@ -2,326 +2,244 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>RuMine News Elite</title>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>FreeCube</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
-        :root {
-            --accent: #00f2ff;
-            --accent-glow: rgba(0, 242, 255, 0.3);
-            --bg: #050505;
-            --card-bg: rgba(20, 20, 20, 0.6);
-            --border: rgba(255, 255, 255, 0.08);
-            --text: #ffffff;
-            --text-dim: #94a3b8;
-        }
-
-        body {
-            background: var(--bg);
-            color: var(--text);
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            margin: 0;
-            overflow-x: hidden;
-            background-image: radial-gradient(circle at top right, #003344, transparent), radial-gradient(circle at bottom left, #110022, transparent);
-            background-attachment: fixed;
-            min-height: 100vh;
-        }
-
-        #access-error { display: none; position: fixed; inset: 0; background: #000; z-index: 10000; flex-direction: column; align-items: center; justify-content: center; }
-
-        .header {
-            padding: 25px 20px;
-            text-align: center;
-            background: rgba(0,0,0,0.4);
-            backdrop-filter: blur(10px);
-            border-bottom: 1px solid var(--border);
-            position: sticky; top: 0; z-index: 1000;
-        }
-
-        .header h1 {
-            margin: 0; font-size: 20px; font-weight: 800; letter-spacing: 3px;
-            text-transform: uppercase; background: linear-gradient(to right, #fff, var(--accent));
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-        }
-
-        /* Категории (Чипсы) */
-        .filter-bar {
-            display: flex; gap: 10px; padding: 15px 20px; overflow-x: auto;
-            scrollbar-width: none;
-        }
-        .filter-bar::-webkit-scrollbar { display: none; }
+        :root { --bg: #050505; --card: #121212; --text: #ffffff; --accent: #ffffff; }
+        .light-theme { --bg: #f7f7f7; --card: #ffffff; --text: #000000; --accent: #000000; }
         
-        .chip {
-            padding: 8px 18px; border-radius: 20px; background: var(--card-bg);
-            border: 1px solid var(--border); font-size: 12px; font-weight: 600;
-            white-space: nowrap; transition: 0.3s; color: var(--text-dim);
-        }
-        .chip.active {
-            background: var(--accent); color: #000; border-color: var(--accent);
-            box-shadow: 0 0 15px var(--accent-glow);
-        }
-
-        .container { padding: 0 20px 120px 20px; }
-        .view { display: none; }
-        .view.active { display: block; animation: slideUp 0.4s ease-out; }
-
-        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-
-        .card {
-            background: var(--card-bg); backdrop-filter: blur(12px);
-            border: 1px solid var(--border); border-radius: 20px;
-            padding: 20px; margin-bottom: 15px; position: relative;
-            transition: 0.3s;
-        }
-
-        .card:active { transform: scale(0.98); }
-
-        .tag {
-            font-size: 10px; font-weight: 800; text-transform: uppercase;
-            color: var(--accent); margin-bottom: 8px; display: block;
-        }
-
-        .title { font-size: 17px; font-weight: 700; margin-bottom: 6px; display: block; }
-        .desc { font-size: 14px; color: var(--text-dim); line-height: 1.5; }
-        .ip-box {
-            margin-top: 15px; padding: 10px; background: rgba(0,0,0,0.3);
-            border-radius: 12px; border: 1px solid var(--border);
-            font-family: monospace; color: var(--accent); display: flex; justify-content: space-between;
-        }
-
-        /* Навигация */
-        .nav {
-            position: fixed; bottom: 20px; left: 20px; right: 20px;
-            background: rgba(15, 15, 15, 0.8); backdrop-filter: blur(20px);
-            border: 1px solid var(--border); border-radius: 25px;
-            height: 70px; display: grid; grid-template-columns: repeat(3, 1fr);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5); z-index: 1000;
-        }
-
-        .nav-item {
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            color: var(--text-dim); font-size: 10px; font-weight: 700; gap: 4px;
-        }
-        .nav-item.active { color: var(--accent); }
-
-        /* Админ-кнопки */
-        .admin-btn { background: var(--accent); color: #000; border: none; padding: 12px; border-radius: 15px; font-weight: 800; width: 100%; margin-bottom: 15px; display: none; }
-        .del-btn { position: absolute; top: 15px; right: 15px; background: #ff3355; color: #fff; border: none; border-radius: 50%; width: 24px; height: 24px; font-size: 12px; display: none; }
+        body { background-color: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; transition: 0.3s; margin-bottom: 90px; overflow-x: hidden; }
+        .glass { background: var(--card); border: 1px solid rgba(128,128,128,0.1); border-radius: 20px; }
+        .nav-btn { flex: 1; text-align: center; padding: 12px; font-size: 10px; opacity: 0.4; transition: 0.2s; }
+        .nav-btn.active { opacity: 1; transform: translateY(-2px); }
+        .admin-tag { background: #ff3b3b; color: white; padding: 2px 8px; border-radius: 6px; font-size: 10px; font-weight: bold; }
         
-        .edit-area { background: transparent; border: 1px dashed var(--accent); color: #fff; width: 100%; padding: 5px; margin: 2px 0; border-radius: 5px; }
+        /* Заглушка для браузера */
+        #tg-check { display: none; position: fixed; inset: 0; background: #000; z-index: 9999; justify-content: center; align-items: center; text-align: center; p: 20px; }
+        
+        .hidden { display: none; }
     </style>
 </head>
 <body>
 
-    <div id="access-error">
-        <h1 style="color:var(--accent)">RESTRICTED</h1>
-        <p>Open via RuMine News Bot</p>
+    <div id="tg-check" class="flex flex-col">
+        <h2 class="text-2xl font-bold mb-2 text-white">FreeCube</h2>
+        <p class="text-gray-500">Пожалуйста, откройте приложение через Telegram бота</p>
     </div>
 
-    <div class="header">
-        <h1>RuMine Elite</h1>
-    </div>
+    <header class="p-6 flex justify-between items-center">
+        <h1 class="text-2xl font-bold tracking-tighter">FreeCube</h1>
+        <div id="adminBadge" class="admin-tag hidden">ADMIN</div>
+    </header>
 
-    <div id="filter-container" class="filter-bar">
+    <main id="tab-balance" class="px-6 animate-fade">
+        <div class="glass p-10 text-center mb-8">
+            <p id="txt-your-balance" class="text-[10px] text-gray-500 uppercase tracking-widest mb-2">Ваш счет</p>
+            <h2 class="text-5xl font-light"><span id="balance">0</span><span class="text-xl ml-1 text-gray-400 font-normal">К</span></h2>
+        </div>
+        
+        <div class="flex justify-between items-center mb-4">
+            <h3 id="txt-news" class="font-semibold text-lg">Новости</h3>
+            <button onclick="openModal('news')" class="admin-btn hidden text-[10px] border border-white/20 px-3 py-1 rounded-full uppercase">Добавить</button>
+        </div>
+        <div id="news-list" class="space-y-3 pb-4"></div>
+    </main>
+
+    <main id="tab-shop" class="px-6 hidden">
+        <div class="flex justify-between items-center mb-6">
+            <h3 id="txt-shop" class="text-xl font-semibold">Магазин</h3>
+            <button onclick="openModal('item')" class="admin-btn hidden bg-white text-black px-4 py-1 rounded-full text-xs font-bold">Добавить товар</button>
+        </div>
+        <div id="shop-list" class="grid grid-cols-1 gap-4 pb-4"></div>
+    </main>
+
+    <main id="tab-quests" class="px-6 hidden">
+        <h3 id="txt-quests-title" class="text-xl font-semibold mb-6">Задания</h3>
+        <div class="glass p-10 text-center border-dashed border-white/10">
+            <p id="txt-quests-empty" class="text-gray-500 text-sm italic">Заданий пока нет...</p>
+        </div>
+    </main>
+
+    <main id="tab-options" class="px-6 hidden">
+        <h3 id="txt-settings" class="text-xl font-semibold mb-6">Опции</h3>
+        
+        <div class="glass p-5 mb-6 flex items-center gap-4">
+            <div class="w-12 h-12 bg-zinc-800 rounded-full flex items-center justify-center text-xl" id="user-avatar">👤</div>
+            <div>
+                <p id="user-name" class="font-bold text-sm">Guest</p>
+                <p id="user-id" class="text-[10px] text-gray-500 font-mono">ID: 0000000000</p>
+            </div>
         </div>
 
-    <div class="container">
-        <div id="news" class="view active">
-            <button class="admin-btn" id="add-news-btn" onclick="addNewItem('news')">+ НОВАЯ НОВОСТЬ</button>
-            <div id="news-list"></div>
-        </div>
-
-        <div id="servers" class="view">
-            <button class="admin-btn" id="add-srv-btn" onclick="addNewItem('servers')">+ НОВЫЙ СЕРВЕР</button>
-            <div id="servers-list"></div>
-        </div>
-
-        <div id="options" class="view">
-            <div class="card">
-                <div class="opt-row" style="display:flex; justify-content: space-between; margin-bottom: 20px;">
-                    <span style="color:var(--text-dim)">ID:</span>
-                    <span id="user-id" style="color:var(--accent)">...</span>
+        <div class="glass p-5 space-y-6">
+            <div>
+                <p id="txt-theme" class="text-xs text-gray-400 mb-3 uppercase tracking-tighter">Оформление</p>
+                <div class="flex gap-2 p-1 bg-black/20 rounded-xl">
+                    <button onclick="setTheme('dark')" class="flex-1 py-2 rounded-lg text-xs font-medium" id="btn-dark">Тёмная</button>
+                    <button onclick="setTheme('light')" class="flex-1 py-2 rounded-lg text-xs font-medium" id="btn-light">Светлая</button>
                 </div>
-                <div style="margin-bottom: 20px;">
-                    <label style="display:block; margin-bottom:10px; font-size:12px; font-weight:800; color:var(--text-dim)">LANGUAGE / ЯЗЫК</label>
-                    <select id="lang-select" onchange="changeLanguage()" style="width:100%; padding:12px; background:var(--bg); color:#fff; border:1px solid var(--border); border-radius:12px;">
-                        <option value="ru">Русский</option>
-                        <option value="ua">Українська</option>
-                        <option value="en">English</option>
-                    </select>
-                </div>
-                <button id="save-all" class="admin-btn" style="background:#00ff88" onclick="saveToFirebase()">СОХРАНИТЬ ВСЕ ЯЗЫКИ</button>
+            </div>
+            <div>
+                <p id="txt-lang" class="text-xs text-gray-400 mb-3 uppercase tracking-tighter">Язык системы</p>
+                <select id="langSelect" onchange="setLang(this.value)" class="w-full bg-transparent border-b border-white/10 p-2 text-sm focus:outline-none">
+                    <option value="ru" class="bg-zinc-900">Русский</option>
+                    <option value="ua" class="bg-zinc-900">Українська</option>
+                    <option value="en" class="bg-zinc-900">English</option>
+                </select>
+            </div>
+        </div>
+    </main>
+
+    <nav class="fixed bottom-4 left-4 right-4 glass flex justify-around items-center p-1 rounded-2xl border-white/5 shadow-2xl">
+        <div onclick="showTab('balance')" id="nav-balance" class="nav-btn active">💰<br><span id="txt-nav-bal">Счет</span></div>
+        <div onclick="showTab('shop')" id="nav-shop" class="nav-btn">🛒<br><span id="txt-nav-shop">Магазин</span></div>
+        <div onclick="showTab('quests')" id="nav-quests" class="nav-btn">📜<br><span id="txt-nav-quests">Задания</span></div>
+        <div onclick="showTab('options')" id="nav-options" class="nav-btn">⚙️<br><span id="txt-nav-opts">Опции</span></div>
+    </nav>
+
+    <div id="adminModal" class="fixed inset-0 bg-black/90 flex items-center justify-center p-6 hidden z-[100] backdrop-blur-sm">
+        <div class="glass p-6 w-full max-w-sm">
+            <h3 id="modalTitle" class="text-lg font-bold mb-5">Действие</h3>
+            <input id="input1" type="text" placeholder="Название" class="w-full bg-white/5 border border-white/10 p-3 mb-3 rounded-xl focus:outline-none">
+            <input id="input2" type="number" placeholder="Цена" class="w-full bg-white/5 border border-white/10 p-3 mb-6 rounded-xl focus:outline-none">
+            <div class="flex gap-3">
+                <button onclick="saveAdminData()" class="bg-white text-black flex-1 py-3 rounded-xl font-bold">Опубликовать</button>
+                <button onclick="closeModal()" class="text-gray-400 flex-1 py-3">Отмена</button>
             </div>
         </div>
     </div>
 
-    <nav class="nav">
-        <div class="nav-item active" onclick="tab('news', this)" id="n-news">НОВОСТИ</div>
-        <div class="nav-item" onclick="tab('servers', this)" id="n-top">ТОП</div>
-        <div class="nav-item" onclick="tab('options', this)" id="n-opt">ОПЦИИ</div>
-    </nav>
-
     <script>
-        const firebaseConfig = {
-            apiKey: "AIzaSyA-tvZ6EUAD_QqmPlpBzXJDyr3ra_VQ-Ws",
-            databaseURL: "https://ruminenewsbot-default-rtdb.europe-west1.firebasedatabase.app/",
-            projectId: "ruminenewsbot"
-        };
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
         const tg = window.Telegram.WebApp;
         const ADMIN_ID = 6086871004;
-        
-        let currentLang = 'ru';
-        let currentUserId = 0;
-        let currentFilter = 'Все';
-        let allData = { ru: { news: [], servers: [] }, ua: { news: [], servers: [] }, en: { news: [], servers: [] } };
 
-        const translations = {
-            ru: { n: "НОВОСТИ", t: "ТОП", o: "ОПЦИИ", cat_n: ["Все", "Сервера", "Ютуберы"], cat_s: ["Все", "Гриф", "Анархия"] },
-            ua: { n: "НОВИНИ", t: "ТОП", o: "ОПЦІЇ", cat_n: ["Все", "Сервера", "Ютубери"], cat_s: ["Все", "Гриф", "Анархія"] },
-            en: { n: "NEWS", t: "TOP", o: "OPTIONS", cat_n: ["All", "Servers", "YouTubers"], cat_s: ["All", "Grief", "Anarchy"] }
+        // Проверка Telegram
+        if (!tg.initDataUnsafe || !tg.initDataUnsafe.user) {
+            document.getElementById('tg-check').style.display = 'flex';
+        }
+
+        let user = tg.initDataUnsafe?.user || { id: "0", first_name: "Local User", username: "unknown" };
+        let isAdmin = (user.id == ADMIN_ID);
+
+        const i18n = {
+            ru: { bal: "Счет", shop: "Магазин", quests: "Задания", opts: "Опции", your_bal: "Ваш баланс", news: "Новости", shop_title: "Магазин", empty: "Заданий пока нет", settings: "Настройки", theme: "Тема", q_t: "Квесты" },
+            ua: { bal: "Рахунок", shop: "Крамниця", quests: "Завдання", opts: "Опції", your_bal: "Ваш рахунок", news: "Новини", shop_title: "Крамниця", empty: "Завдань поки немає", settings: "Налаштування", theme: "Тема", q_t: "Квести" },
+            en: { bal: "Wallet", shop: "Store", quests: "Tasks", opts: "Options", your_bal: "Total Balance", news: "Announcements", shop_title: "Item Store", empty: "No tasks available", settings: "Settings", theme: "Theme", q_t: "Quests" }
         };
 
-        function changeLanguage() {
-            currentLang = document.getElementById('lang-select').value;
-            currentFilter = translations[currentLang].cat_n[0]; // Сброс фильтра
-            updateUI();
-        }
+        // Начальное состояние (ПУСТО)
+        let shopItems = JSON.parse(localStorage.getItem('shop_v2')) || [];
+        let news = JSON.parse(localStorage.getItem('news_v2')) || [];
+        let currentLang = localStorage.getItem('lang') || 'ru';
 
-        function updateUI() {
-            const T = translations[currentLang];
-            document.getElementById('n-news').innerText = T.n;
-            document.getElementById('n-top').innerText = T.t;
-            document.getElementById('n-opt').innerText = T.o;
-            
-            renderFilters();
-            renderContent();
-        }
-
-        function renderFilters() {
-            const isNews = document.getElementById('news').classList.contains('active');
-            const cats = isNews ? translations[currentLang].cat_n : translations[currentLang].cat_s;
-            const cont = document.getElementById('filter-container');
-            cont.innerHTML = '';
-            
-            cats.forEach(cat => {
-                const activeClass = (cat === currentFilter) ? 'active' : '';
-                cont.innerHTML += `<div class="chip ${activeClass}" onclick="setFilter('${cat}')">${cat}</div>`;
-            });
-        }
-
-        function setFilter(f) {
-            currentFilter = f;
-            renderFilters();
-            renderContent();
-        }
-
-        function loadData() {
-            db.ref('/').on('value', (snap) => {
-                const data = snap.val();
-                if (data) {
-                    allData = data;
-                    updateUI();
-                }
-            });
-        }
-
-        function renderContent() {
-            const isNews = document.getElementById('news').classList.contains('active');
-            const listCont = isNews ? document.getElementById('news-list') : document.getElementById('servers-list');
-            listCont.innerHTML = '';
-
-            const items = allData[currentLang][isNews ? 'news' : 'servers'] || [];
-            
-            items.forEach((item, idx) => {
-                // Фильтрация
-                const allText = isNews ? translations[currentLang].cat_n[0] : translations[currentLang].cat_s[0];
-                if (currentFilter !== allText && item.cat !== currentFilter) return;
-
-                let html = `<div class="card">
-                    <button class="del-btn" onclick="deleteItem('${isNews ? 'news' : 'servers'}', ${idx})">✕</button>
-                    <span class="tag">${item.cat}</span>`;
-                
-                if (isNews) {
-                    html += `<span class="title" contenteditable="${currentUserId == ADMIN_ID}" id="edit-t-${idx}">${item.title}</span>
-                             <span class="desc" contenteditable="${currentUserId == ADMIN_ID}" id="edit-d-${idx}">${item.desc}</span>`;
-                } else {
-                    html += `<span class="title">${item.name}</span>
-                             <span class="desc" contenteditable="${currentUserId == ADMIN_ID}" id="edit-tp-${idx}">${item.type}</span>
-                             <div class="ip-box"><span contenteditable="${currentUserId == ADMIN_ID}" id="edit-ip-${idx}">${item.ip}</span></div>`;
-                }
-                html += `</div>`;
-                listCont.insertAdjacentHTML('beforeend', html);
-            });
-            checkAdmin();
-        }
-
-        function addNewItem(type) {
-            const newItem = type === 'news' 
-                ? { cat: "Сервера", title: "Заголовок", desc: "Описание" }
-                : { cat: "Гриф", name: "Название", type: "Гриф/Анка", ip: "0.0.0.0" };
-            
-            // Добавляем во все языки (пустышки)
-            ['ru', 'ua', 'en'].forEach(l => {
-                if (!allData[l][type]) allData[l][type] = [];
-                allData[l][type].unshift(newItem);
-            });
-            renderContent();
-        }
-
-        function deleteItem(type, idx) {
-            ['ru', 'ua', 'en'].forEach(l => allData[l][type].splice(idx, 1));
-            renderContent();
-        }
-
-        function saveToFirebase() {
-            // Перед сохранением обновляем данные из contenteditable текущего языка
-            const isNews = document.getElementById('news').classList.contains('active');
-            const type = isNews ? 'news' : 'servers';
-            
-            allData[currentLang][type].forEach((item, idx) => {
-                if (isNews) {
-                    item.title = document.getElementById(`edit-t-${idx}`).innerText;
-                    item.desc = document.getElementById(`edit-d-${idx}`).innerText;
-                } else {
-                    item.type = document.getElementById(`edit-tp-${idx}`).innerText;
-                    item.ip = document.getElementById(`edit-ip-${idx}`).innerText;
-                }
-            });
-
-            db.ref('/').set(allData).then(() => alert("Elite Cloud Sync: Success!"));
-        }
-
-        function checkAdmin() {
-            if (currentUserId == ADMIN_ID) {
-                document.querySelectorAll('.admin-btn, .del-btn').forEach(el => el.style.display = 'block');
-            }
-        }
-
-        function tab(v, el) {
-            document.querySelectorAll('.view').forEach(x => x.classList.remove('active'));
-            document.querySelectorAll('.nav-item').forEach(x => x.classList.remove('active'));
-            document.getElementById(v).classList.add('active');
-            el.classList.add('active');
-            currentFilter = (v === 'news') ? translations[currentLang].cat_n[0] : translations[currentLang].cat_s[0];
-            updateUI();
-        }
-
-        window.onload = () => {
-            if (!tg.initDataUnsafe || !tg.initDataUnsafe.user) {
-                // Для теста на ПК закомментируй строку ниже
-                document.getElementById('access-error').style.display = 'flex';
-            } else {
-                currentUserId = tg.initDataUnsafe.user.id;
-                document.getElementById('user-id').innerText = currentUserId;
-            }
+        function init() {
+            tg.ready();
             tg.expand();
-            loadData();
-        };
+            
+            // Заполнение данных профиля в опциях
+            document.getElementById('user-name').innerText = user.first_name + (user.username ? ` (@${user.username})` : '');
+            document.getElementById('user-id').innerText = `ID: ${user.id}`;
+            
+            if(isAdmin) {
+                document.querySelectorAll('.admin-btn, #adminBadge').forEach(el => el.classList.remove('hidden'));
+            }
+
+            setTheme(localStorage.getItem('theme') || 'dark');
+            setLang(currentLang);
+            render();
+        }
+
+        function showTab(tab) {
+            document.querySelectorAll('main').forEach(m => m.classList.add('hidden'));
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('tab-' + tab).classList.remove('hidden');
+            document.getElementById('nav-' + tab).classList.add('active');
+            tg.HapticFeedback.impactOccurred('light');
+        }
+
+        function setTheme(theme) {
+            document.body.className = (theme === 'light' ? 'light-theme' : '');
+            localStorage.setItem('theme', theme);
+            document.getElementById('btn-dark').className = theme === 'dark' ? 'flex-1 py-2 rounded-lg text-xs font-bold bg-white/10 border border-white/20' : 'flex-1 py-2 rounded-lg text-xs opacity-50';
+            document.getElementById('btn-light').className = theme === 'light' ? 'flex-1 py-2 rounded-lg text-xs font-bold bg-white text-black' : 'flex-1 py-2 rounded-lg text-xs opacity-50';
+            tg.setHeaderColor(theme === 'light' ? '#f7f7f7' : '#050505');
+        }
+
+        function setLang(lang) {
+            currentLang = lang;
+            localStorage.setItem('lang', lang);
+            const t = i18n[lang];
+            document.getElementById('txt-nav-bal').innerText = t.bal;
+            document.getElementById('txt-nav-shop').innerText = t.shop;
+            document.getElementById('txt-nav-quests').innerText = t.quests;
+            document.getElementById('txt-nav-opts').innerText = t.opts;
+            document.getElementById('txt-your-balance').innerText = t.your_bal;
+            document.getElementById('txt-news').innerText = t.news;
+            document.getElementById('txt-shop').innerText = t.shop_title;
+            document.getElementById('txt-quests-empty').innerText = t.empty;
+            document.getElementById('txt-settings').innerText = t.settings;
+            document.getElementById('txt-theme').innerText = t.theme;
+            document.getElementById('txt-quests-title').innerText = t.q_t;
+            document.getElementById('langSelect').value = lang;
+        }
+
+        function render() {
+            // Рендер новостей
+            document.getElementById('news-list').innerHTML = news.length ? news.map(n => `
+                <div class="glass p-4 text-sm flex justify-between items-start">
+                    <span class="leading-relaxed">${n.text}</span>
+                    ${isAdmin ? `<button onclick="deleteNews(${n.id})" class="text-red-500 ml-2 text-lg">✕</button>` : ''}
+                </div>
+            `).join('') : `<p class="text-gray-600 text-[10px] uppercase text-center py-4 tracking-widest">Новостей нет</p>`;
+
+            // Рендер магазина
+            document.getElementById('shop-list').innerHTML = shopItems.length ? shopItems.map(item => `
+                <div class="glass p-5 flex justify-between items-center transition-all active:scale-[0.98]">
+                    <div>
+                        <h4 class="font-bold">${item.title}</h4>
+                        <p class="text-sm text-gray-500">${item.price} Крони</p>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <button class="bg-white text-black px-5 py-2 rounded-xl text-xs font-bold">Купить</button>
+                        ${isAdmin ? `<button onclick="deleteItem(${item.id})" class="text-gray-500 hover:text-red-500 text-xl">🗑️</button>` : ''}
+                    </div>
+                </div>
+            `).join('') : `<div class="glass p-10 text-center border-dashed border-white/10 text-gray-600 italic">Склад пуст</div>`;
+        }
+
+        let modalMode = '';
+        function openModal(mode) { 
+            modalMode = mode;
+            document.getElementById('modalTitle').innerText = mode === 'item' ? 'Новый товар' : 'Новое объявление';
+            document.getElementById('input2').style.display = mode === 'item' ? 'block' : 'none';
+            document.getElementById('adminModal').classList.remove('hidden'); 
+        }
+        function closeModal() { document.getElementById('adminModal').classList.add('hidden'); }
+
+        function saveAdminData() {
+            const v1 = document.getElementById('input1').value;
+            const v2 = document.getElementById('input2').value;
+            if(!v1) return;
+
+            if(modalMode === 'item') {
+                shopItems.unshift({id: Date.now(), title: v1, price: v2 || 0});
+                localStorage.setItem('shop_v2', JSON.stringify(shopItems));
+            } else {
+                news.unshift({id: Date.now(), text: v1});
+                localStorage.setItem('news_v2', JSON.stringify(news));
+            }
+            render(); closeModal();
+            document.getElementById('input1').value = '';
+            document.getElementById('input2').value = '';
+        }
+
+        function deleteItem(id) { shopItems = shopItems.filter(i => i.id !== id); localStorage.setItem('shop_v2', JSON.stringify(shopItems)); render(); }
+        function deleteNews(id) { news = news.filter(n => n.id !== id); localStorage.setItem('news_v2', JSON.stringify(news)); render(); }
+
+        init();
     </script>
 </body>
 </html>
