@@ -2,180 +2,579 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Информация</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Drone Ops: Singularity Pro</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     <style>
         :root {
-            --bg-color: #f5f5f7;
-            --card-bg: #ffffff;
-            --text-color: #1c1c1e;
-            --accent-color: #007aff;
-            --nav-bg: #ffffff;
+            --primary: #4ecca3; --secondary: #45b7d1; --bg-dark: #0a0b10;
+            --card-bg: #161b22; --accent: #f05454; --text: #e9ecef; --gold: #ffd700;
         }
-        body.dark {
-            --bg-color: #000000;
-            --card-bg: #1c1c1e;
-            --text-color: #ffffff;
-            --accent-color: #0a84ff;
-            --nav-bg: #121212;
-        }
-        body {
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            margin: 0; padding: 0;
-            transition: background 0.3s;
-            padding-bottom: 70px;
-        }
+        body { background: var(--bg-dark); color: var(--text); font-family: 'Segoe UI', sans-serif; margin: 0; padding-bottom: 90px; overflow-x: hidden; }
+        
+        #toast-container { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); width: 90%; z-index: 1000; pointer-events: none; }
+        .toast { background: #1f2937; border: 1px solid var(--primary); padding: 12px; border-radius: 12px; margin-top: 8px; animation: slideUp 0.3s ease; text-align: center; font-size: 0.9rem; box-shadow: 0 4px 15px rgba(0,0,0,0.5); border-left: 4px solid var(--primary); }
+        .toast.error { border-left-color: var(--accent); color: #ff9999; }
 
-        /* Шапка */
-        .header { padding: 20px; text-align: center; font-size: 20px; font-weight: bold; border-bottom: 1px solid #ccc; }
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { opacity: 1; } }
 
-        /* Контентные секции */
-        .page { display: none; padding: 15px; }
-        .page.active { display: block; }
+        .top-panel { background: #111827; padding: 15px; position: sticky; top: 0; z-index: 100; border-bottom: 1px solid #374151; }
+        .money-display { font-size: 1.4rem; font-weight: 800; color: var(--primary); }
+        .xp-container { height: 8px; background: #374151; border-radius: 4px; margin-top: 10px; overflow: hidden; }
+        .xp-fill { height: 100%; background: var(--secondary); width: 0%; transition: 0.4s; }
 
-        /* Админ-панель */
-        .admin-panel { 
-            display: none; 
-            background: var(--card-bg); 
-            padding: 15px; 
-            border-radius: 12px; 
-            margin-bottom: 20px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-        }
+        .container { padding: 15px; }
+        .page { display: none; }
+        .active-page { display: block; }
 
-        /* Карточки новостей */
-        .news-card { 
-            background: var(--card-bg); 
-            padding: 15px; 
-            border-radius: 12px; 
-            margin-bottom: 10px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-        }
-        .category { font-size: 12px; font-weight: bold; color: var(--accent-color); margin-bottom: 5px; text-transform: uppercase; }
+        .bp-scroll-container { display: flex; gap: 12px; overflow-x: auto; padding: 10px 0; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; }
+        .bp-slot { min-width: 130px; background: var(--card-bg); border-radius: 12px; padding: 15px; text-align: center; border: 1px solid #30363d; scroll-snap-align: start; transition: 0.3s; }
+        .bp-slot.unlocked { border-color: var(--gold); background: rgba(255, 215, 0, 0.03); }
 
-        /* Поля ввода */
-        select, textarea, button { 
-            width: 100%; margin: 8px 0; padding: 12px; 
-            border-radius: 8px; border: 1px solid #ccc; 
-            background: var(--card-bg); color: var(--text-color);
-            box-sizing: border-box; font-size: 14px;
-        }
-        button { background: var(--accent-color); color: white; border: none; font-weight: bold; cursor: pointer; }
+        .card { background: var(--card-bg); border-radius: 15px; padding: 15px; margin-bottom: 12px; border: 1px solid #30363d; transition: 0.3s; }
+        .loc-tag { font-size: 0.65rem; color: var(--secondary); text-transform: uppercase; letter-spacing: 1px; font-weight: bold; }
+        
+        .btn { background: var(--primary); color: #000; border: none; padding: 10px; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; transition: 0.2s; }
+        .btn:active { transform: scale(0.98); }
+        .btn:disabled { background: #21262d; color: #484f58; cursor: not-allowed; transform: none !important; }
+        .btn-charge { background: var(--accent); color: white; margin-top: 8px; font-size: 0.75rem; }
+        .btn-outline { background: transparent; border: 1px solid #374151; color: #8b949e; margin-top: 5px; font-size: 0.75rem; }
 
-        /* Нижняя навигация */
-        .nav-bar {
-            position: fixed; bottom: 0; width: 100%; height: 60px;
-            background: var(--nav-bg); display: flex;
-            border-top: 1px solid #333; justify-content: space-around; align-items: center;
-        }
-        .nav-item { text-align: center; flex: 1; cursor: pointer; opacity: 0.6; font-size: 14px; }
-        .nav-item.active { opacity: 1; color: var(--accent-color); font-weight: bold; }
+        .tab-switcher { display: flex; gap: 10px; margin-bottom: 15px; }
+        .tab-btn { flex: 1; padding: 8px; background: #111827; border: 1px solid #374151; border-radius: 8px; color: #8b949e; font-size: 0.8rem; cursor: pointer; }
+        .tab-btn.active { border-color: var(--primary); color: var(--primary); background: rgba(78, 204, 163, 0.05); }
 
-        /* Опции */
-        .option-row { display: flex; justify-content: space-between; align-items: center; padding: 15px; background: var(--card-bg); border-radius: 12px; }
+        .modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); z-index:1000; justify-content:center; align-items:center; }
+        .modal-content { background:var(--card-bg); padding:25px; border-radius:20px; width:85%; border:1px solid var(--primary); box-shadow: 0 0 30px rgba(78, 204, 163, 0.2); max-height: 80vh; overflow-y: auto; }
+        .setting-row { display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; border-bottom: 1px solid #222; padding-bottom: 10px; }
+
+        nav { position: fixed; bottom: 0; width: 100%; height: 75px; background: #111827; display: flex; border-top: 1px solid #374151; z-index: 500; }
+        .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 0.65rem; color: #8b949e; cursor: pointer; transition: 0.3s; }
+        .nav-item svg { width: 24px; height: 24px; margin-bottom: 4px; fill: #8b949e; transition: 0.3s; }
+        .nav-item.active { color: var(--primary); }
+        .nav-item.active svg { fill: var(--primary); filter: drop-shadow(0 0 5px var(--primary)); }
+
+        .drone-preview, .item-preview { width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.3); border-radius: 10px; }
+        .skin-item { display: flex; justify-content: space-between; align-items: center; padding: 12px; border: 1px solid #30363d; border-radius: 10px; margin-bottom: 8px; }
+
+        /* Админка */
+        .admin-box { margin-top: 20px; padding-top: 20px; border-top: 2px dashed var(--gold); }
+        .admin-input { width: 100%; background: #000; border: 1px solid #333; color: #fff; padding: 8px; margin-bottom: 10px; border-radius: 5px; }
+
+        .ending-screen { position:fixed; top:0; left:0; width:100%; height:100%; background:white; color:black; z-index:3000; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; animation: whiteout 5s ease-in forwards; }
+        .ending-text { opacity: 0; animation: fadeInText 2s 2s forwards; font-family: serif; }
+        @keyframes whiteout { from {opacity:0} to {opacity:1} }
+        @keyframes fadeInText { from {opacity:0; transform: translateY(20px);} to {opacity:1; transform: translateY(0);} }
     </style>
 </head>
 <body>
 
-    <div class="header">Информация</div>
+<div id="toast-container"></div>
 
-    <div id="page-info" class="page active">
-        <div id="adminPanel" class="admin-panel">
-            <strong>📢 Создать новость (Админ)</strong>
-            <select id="category">
-                <option value="Основа: Yarik_Grief">Основа: Yarik_Grief</option>
-                <option value="второй канал: Heim">второй канал: Heim</option>
-                <option value="Секрет....">Секрет....</option>
+<div id="settings-modal" class="modal" onclick="toggleSettings()">
+    <div class="modal-content" onclick="event.stopPropagation()">
+        <h3 style="margin-top:0">ИНТЕРФЕЙС</h3>
+        <div style="font-size: 0.7rem; color: var(--secondary); margin-bottom: 15px;">User ID: <span id="my-tg-id">loading...</span></div>
+        <div class="setting-row">
+            <span>Уведомления о доходе</span>
+            <input type="checkbox" id="set-income" checked onchange="updateSettings()">
+        </div>
+        <div class="setting-row">
+            <span>Уведомления о LVL UP</span>
+            <input type="checkbox" id="set-lvl" checked onchange="updateSettings()">
+        </div>
+        <div class="setting-row">
+            <span>Основные уведомления</span>
+            <input type="checkbox" id="set-sys" checked onchange="updateSettings()">
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px;">
+            <button class="btn" style="background: var(--primary); color: #000;" onclick="setAllNotifs(true)">ВКЛ ВСЁ</button>
+            <button class="btn" style="background: var(--accent); color: white;" onclick="setAllNotifs(false)">ВЫКЛ ВСЁ</button>
+        </div>
+
+        <div id="admin-panel" style="display:none;" class="admin-box">
+            <h3 style="color:var(--gold)">ADMIN CONSOLE</h3>
+            <input type="text" id="adm-target-id" class="admin-input" placeholder="Telegram ID игрока">
+            <input type="number" id="adm-amount" class="admin-input" placeholder="Количество">
+            <select id="adm-type" class="admin-input">
+                <option value="money">Валюта (₮)</option>
+                <option value="cases">Кейсы</option>
+                <option value="keys">Ключи</option>
             </select>
-            <textarea id="newsText" rows="3" placeholder="О чем ролик?"></textarea>
-            <button onclick="postNews()">Опубликовать</button>
+            <button class="btn" style="background:var(--gold)" onclick="adminGive()">ВЫДАТЬ ОБЪЕКТ</button>
         </div>
-        <div id="newsFeed">Загрузка ленты...</div>
-    </div>
 
-    <div id="page-options" class="page">
-        <h3>Настройки приложения</h3>
-        <div class="option-row" onclick="toggleTheme()">
-            <span>Сменить тему (Светлая/Темная)</span>
-            <span>🌓</span>
+        <button class="btn" style="margin-top: 25px;" onclick="toggleSettings()">ЗАКРЫТЬ</button>
+    </div>
+</div>
+
+<div id="skin-modal" class="modal" onclick="closeSkinMenu()">
+    <div class="modal-content" onclick="event.stopPropagation()">
+        <h3 id="skin-modal-title" style="margin-top:0">ВЫБОР СКИНА</h3>
+        <div id="skin-list"></div>
+        <button class="btn" style="margin-top: 15px; background: #374151; color: white;" onclick="closeSkinMenu()">ЗАКРЫТЬ</button>
+    </div>
+</div>
+
+<div class="top-panel">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div class="money-display"><span id="money">0</span> ₮</div>
+        <div style="display:flex; align-items:center; gap:10px;">
+            <div style="text-align: right;">
+                <div style="font-size: 0.7rem;">LVL <span id="lvl-val">1</span></div>
+                <div style="font-size: 0.6rem; opacity: 0.6;"><span id="xp-val">0</span>/500 XP</div>
+            </div>
+            <div onclick="toggleSettings()" style="font-size:1.4rem; cursor:pointer; filter: drop-shadow(0 0 5px var(--primary))">⚙️</div>
         </div>
-        <p style="text-align: center; font-size: 12px; opacity: 0.5; margin-top: 20px;">Версия 1.0.2</p>
+    </div>
+    <div class="xp-container"><div id="xp-fill" class="xp-fill"></div></div>
+</div>
+
+<div class="container">
+    <div id="page-main" class="page active-page">
+        <h4 id="loc-title" style="color: #888; margin-bottom: 10px;">ДОСТУПНЫЕ ЛОКАЦИИ</h4>
+        <div id="orders-area"></div>
     </div>
 
-    <div class="nav-bar">
-        <div class="nav-item active" id="btn-info" onclick="showPage('info')">📰 Информация</div>
-        <div class="nav-item" id="btn-options" onclick="showPage('options')">⚙️ Опции</div>
+    <div id="page-hangar" class="page">
+        <div class="tab-switcher">
+            <div class="tab-btn active" id="tab-drones" onclick="switchHangar('drones')">ДРОНЫ</div>
+            <div class="tab-btn" id="tab-cases" onclick="switchHangar('cases')">КЕЙСЫ</div>
+        </div>
+        <div id="hangar-content">
+            <div id="drones-area"></div>
+            <div id="cases-area" style="display:none"></div>
+        </div>
     </div>
 
-    <script>
-        // Твои настройки Firebase
-        const firebaseConfig = {
-            apiKey: "AIzaSyA-tvZ6EUAD_QqmPlpBzXJDyr3ra_VQ-Ws",
-            appId: "1:744143799736:web:ea39151db70f2d62c4bb4d",
-            databaseURL: "https://ruminenewsbot-default-rtdb.firebaseio.com",
-            projectId: "ruminenewsbot"
-        };
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
+    <div id="page-bp" class="page">
+        <h4>BATTLE PASS (1-50)</h4>
+        <div class="bp-scroll-container" id="bp-track"></div>
+    </div>
 
-        const tg = window.Telegram.WebApp;
-        tg.expand();
+    <div id="page-shop" class="page">
+        <div id="final-shop"></div>
+        <h4>СНАБЖЕНИЕ</h4>
+        <div id="shop-cases" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px;"></div>
+        <h4>ПОКУПКА ТЕХНИКИ</h4>
+        <div id="shop-drones"></div>
+        <h4 style="margin-top:20px;">МАГАЗИН КРАСКИ</h4>
+        <div id="shop-skins" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;"></div>
+    </div>
+</div>
 
-        // Проверка прав админа
-        const adminId = 6086871004;
-        if (tg.initDataUnsafe?.user?.id === adminId) {
-            document.getElementById('adminPanel').style.display = 'block';
+<nav id="bottom-nav">
+    <div class="nav-item active" onclick="showPage('main')">
+        <svg viewBox="0 0 24 24"><path d="M12,18.54L19.37,12.8L21,14.07L12,21.07L3,14.07L4.62,12.81L12,18.54M12,16L3,9L12,2L21,9L12,16M12,4.53L6.26,9L12,13.47L17.74,9L12,4.53Z"/></svg>
+        Рейсы
+    </div>
+    <div class="nav-item" onclick="showPage('hangar')">
+        <svg viewBox="0 0 24 24"><path d="M21,16.5C21,16.88 20.79,17.21 20.47,17.38L12.57,21.82C12.41,21.94 12.21,22 12,22C11.79,22 11.59,21.94 11.43,21.82L3.53,17.38C3.21,17.21 3,16.88 3,16.5V7.5C3,7.12 3.21,6.79 3.53,6.62L11.43,2.18C11.59,2.06 11.79,2 12,2C12.21,2 12.41,2.06 12.57,2.18L20.47,6.62C20.79,6.79 21,7.12 21,7.5V16.5Z"/></svg>
+        Ангар
+    </div>
+    <div class="nav-item" onclick="showPage('bp')">
+        <svg viewBox="0 0 24 24"><path d="M12,2L4.5,20.29L5.21,21L12,18L18.79,21L19.5,20.29L12,2Z"/></svg>
+        Пропуск
+    </div>
+    <div class="nav-item" onclick="showPage('shop')">
+        <svg viewBox="0 0 24 24"><path d="M12,18H6V14H12M21,14V12L20,7H4L3,12V14H4V20H14V14H18V20H20V14M20,4H4V6H20V4Z"/></svg>
+        Рынок
+    </div>
+</nav>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getDatabase, ref, set, get, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyA-tvZ6EUAD_QqmPlpBzXJDyr3ra_VQ-Ws",
+      authDomain: "ruminenewsbot.firebaseapp.com",
+      databaseURL: "https://ruminenewsbot-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "ruminenewsbot",
+      storageBucket: "ruminenewsbot.firebasestorage.app",
+      messagingSenderId: "744143799736",
+      appId: "1:744143799736:web:80bea4b251b83b33c4bb4d",
+      measurementId: "G-D2M3Y929FN"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    // Telegram Init
+    const tg = window.Telegram.WebApp;
+    tg.expand();
+
+    // ЗАЩИТА: Только Telegram
+    if (!tg.initDataUnsafe || !tg.initDataUnsafe.user) {
+        document.body.innerHTML = "<div style='display:flex; height:100vh; align-items:center; justify-content:center; text-align:center; color:white; padding:20px;'><h1>ОШИБКА ДОСТУПА</h1><p>Игра доступна только через официальный Telegram бот.</p></div>";
+        throw new Error("Game blocked: Not in Telegram");
+    }
+
+    const user = tg.initDataUnsafe.user;
+    const userId = user.id.toString();
+    const adminId = "6086871004";
+
+    // Legacy Data
+    const getLegacyData = () => JSON.parse(localStorage.getItem('drone_legacy_v1')) || { skins: [] };
+    const saveLegacyData = (data) => localStorage.setItem('drone_legacy_v1', JSON.stringify(data));
+
+    const DRONE_SHAPES = {
+        d1: "M12,12m-3,0a3,3 0 1,0 6,0a3,3 0 1,0 -6,0 M2,2 L6,6 M18,2 L14,6 M2,22 L6,18 M18,22 L14,18 M11,12h2 M12,11v2",
+        d2: "M12,2 L14,10 L22,12 L14,14 L12,22 L10,14 L2,12 L10,10 Z M11,12a1,1 0 1,1 2,0a1,1 0 1,1 -2,0",
+        d3: "M4,4 H20 V20 H4 Z M2,2 H6 V6 H2 Z M18,2 H22 V6 H18 Z M2,18 H6 V22 H2 Z M18,18 H22 V22 H18 Z M8,12 H16",
+        d4: "M12,2 L22,12 L12,22 L2,12 Z M12,6 L18,12 L12,18 L6,12 Z M10,12a2,2 0 1,0 4,0a2,2 0 1,0 -4,0",
+        d5: "M12,4 L22,20 L12,17 L2,20 Z M12,9 L14,13 L10,13 Z",
+        d6: "M12,2 L17,5 L17,19 L12,22 L7,19 L7,5 Z M5,5 L8,8 M16,5 L19,8 M5,19 L8,16 M16,19 L19,16 M12,8 V16",
+        d7: "M12,2 C16,2 20,10 20,12 C20,14 16,22 12,22 C8,22 4,14 4,12 C4,10 8,2 12,2 Z M12,5 V10 M10,12 H14",
+        d8: "M12,22a10,10 0 1,0 0,-20a10,10 0 1,0 0,20 M12,8a4,4 0 1,1 0,8a4,4 0 1,1 0,-8 M12,11v2h1",
+        d9: "M2,6 H22 V18 H2 Z M4,6 V2 M20,6 V2 M4,18 V22 M20,18 V22 M8,12 H16 M12,9 V15",
+        d10: "M12,2 L22,8 V16 L12,22 L2,16 V8 Z M12,6 L17,9 V15 L12,18 L7,15 V9 Z M12,10 L14,12 L12,14 L10,12 Z"
+    };
+
+    const DRONES_DB = [
+        { id: 'd1', name: 'Scout v1', price: 0, speed: 1, color: '#4ecca3', loc: 'Трущобы' },
+        { id: 'd2', name: 'Wasp', price: 400, speed: 1.3, color: '#f1c40f', loc: 'Промзона' },
+        { id: 'd3', name: 'Cargo-X', price: 1200, speed: 0.8, color: '#3498db', loc: 'Центр Сити' },
+        { id: 'd4', name: 'Interceptor', price: 3000, speed: 2.2, color: '#e74c3c', loc: 'Аэропорт' },
+        { id: 'd5', name: 'Ghost', price: 7000, speed: 1.5, color: '#9b59b6', loc: 'Остров' },
+        { id: 'd6', name: 'Atlas Heavy', price: 15000, speed: 0.7, color: '#2ecc71', loc: 'Порт' },
+        { id: 'd7', name: 'Viper', price: 35000, speed: 2.8, color: '#1abc9c', loc: 'Военная база' },
+        { id: 'd8', name: 'Nebula', price: 75000, speed: 1.8, color: '#f39c12', loc: 'Луна' },
+        { id: 'd9', name: 'Titan 1', price: 150000, speed: 0.6, color: '#7f8c8d', loc: 'Марс' },
+        { id: 'd10', name: 'Overlord', price: 500000, speed: 3.5, color: '#ffffff', loc: 'Ядро ИИ' }
+    ];
+
+    const SKINS_DB = [
+        { id: 's0', name: 'Standart', price: 0, color: '#4ecca3' },
+        { id: 's1', name: 'Matrix', price: 1000, color: '#00ff41' },
+        { id: 's2', name: 'Blood', price: 3000, color: '#880000' },
+        { id: 's3', name: 'Ocean', price: 8000, color: '#0077ff' },
+        { id: 's4', name: 'Royal', price: 20000, color: '#ffd700' },
+        { id: 's5', name: 'Void', price: 100000, color: '#111111' },
+        { id: 's_final', name: 'SINGULARITY', price: 0, color: '#ff00ff' }
+    ];
+
+    const BP_DB = [];
+    for(let i=1; i<=50; i++) {
+        let type = 'money', val = i * 450, label = `+${val}₮`;
+        if (i === 50) { type = 'final_chest'; val = 1; label = 'FINAL CHEST'; }
+        else if (i % 10 === 0) { type = 'drone'; val = DRONES_DB[Math.min(i/5, 9)]; label = 'BP DRONE'; }
+        else if (i % 7 === 0) { type = 'charge'; val = 100; label = 'FULL CHARGE'; }
+        else if (i % 3 === 0) { type = 'skin'; val = SKINS_DB[Math.min(i/3, 5)]; label = `SKIN: ${val.name}`; }
+        BP_DB.push({ lvl: i, type, reward: val, label });
+    }
+
+    window.state = {
+        money: 500, xp: 0, lvl: 1,
+        drones: [{ ...DRONES_DB[0], battery: 100, status: 'idle' }],
+        ownedSkins: ['#4ecca3'],
+        claimedBp: [],
+        settings: { income: true, lvl: true, system: true },
+        inventory: { cases: 0, keys: 0, finalChests: 0 },
+        gameEnded: false
+    };
+
+    // Database functions
+    async function save() {
+        try {
+            await set(ref(db, 'users/' + userId), window.state);
+        } catch (e) { console.error("Save error", e); }
+    }
+
+    async function load() {
+        try {
+            const snap = await get(ref(db, 'users/' + userId));
+            if (snap.exists()) {
+                window.state = snap.val();
+                const legacy = getLegacyData();
+                legacy.skins.forEach(s => { if(!window.state.ownedSkins.includes(s)) window.state.ownedSkins.push(s); });
+                render();
+            }
+        } catch (e) { console.error("Load error", e); }
+    }
+
+    // ADMIN FUNCTIONS
+    window.adminGive = async function() {
+        const target = document.getElementById('adm-target-id').value;
+        const amount = parseInt(document.getElementById('adm-amount').value);
+        const type = document.getElementById('adm-type').value;
+
+        if (!target || isNaN(amount)) return notify("Заполните данные!", "system");
+
+        try {
+            const targetRef = ref(db, 'users/' + target);
+            const snap = await get(targetRef);
+            if (!snap.exists()) return notify("Игрок не найден в базе!", "system");
+
+            let data = snap.val();
+            if (type === 'money') data.money += amount;
+            if (type === 'cases') data.inventory.cases += amount;
+            if (type === 'keys') data.inventory.keys += amount;
+
+            await update(targetRef, data);
+            notify("Выполнено успешно!", "system");
+        } catch (e) { notify("Ошибка базы данных", "system"); }
+    }
+
+    // Game Logic
+    let activeSkinDroneIdx = null;
+
+    window.notify = function(text, type) {
+        if (type === 'income' && !window.state.settings.income) return;
+        if (type === 'lvl' && !window.state.settings.lvl) return;
+        if (type === 'system' && !window.state.settings.system) return;
+        const isError = text.includes('Не хватает') || text.includes('уже') || text.includes('нет');
+        const t = document.createElement('div'); 
+        t.className = 'toast' + (isError ? ' error' : ''); 
+        t.innerText = text;
+        document.getElementById('toast-container').appendChild(t);
+        setTimeout(() => t.remove(), 2500);
+    }
+
+    window.toggleSettings = function() {
+        const m = document.getElementById('settings-modal');
+        m.style.display = m.style.display === 'flex' ? 'none' : 'flex';
+        document.getElementById('my-tg-id').innerText = userId;
+        if (userId === adminId) document.getElementById('admin-panel').style.display = 'block';
+    }
+
+    window.updateSettings = function() {
+        window.state.settings.income = document.getElementById('set-income').checked;
+        window.state.settings.lvl = document.getElementById('set-lvl').checked;
+        window.state.settings.system = document.getElementById('set-sys').checked;
+        save();
+    }
+
+    window.setAllNotifs = function(val) {
+        window.state.settings.income = val; window.state.settings.lvl = val; window.state.settings.system = val;
+        document.getElementById('set-income').checked = val;
+        document.getElementById('set-lvl').checked = val;
+        document.getElementById('set-sys').checked = val;
+        save();
+        notify(val ? "Все уведомления включены" : "Все уведомления отключены", 'system');
+    }
+
+    window.addXP = function(amt) {
+        window.state.xp += amt;
+        if (window.state.xp >= 500) { window.state.lvl++; window.state.xp -= 500; notify(`LEVEL UP: ${window.state.lvl}`, 'lvl'); }
+        save(); render();
+    }
+
+    window.sendOrder = function(reward, cost, time) {
+        const drone = window.state.drones.find(d => d.status === 'idle' && d.battery >= cost);
+        if (!drone) return notify("Нет свободных дронов!", 'system');
+        drone.status = 'busy'; drone.battery -= cost;
+        render();
+        setTimeout(() => {
+            drone.status = 'idle'; window.state.money += reward;
+            addXP(150); notify(`Доход: +${reward}₮`, 'income');
+        }, time / drone.speed);
+    }
+
+    window.chargeDrone = function(idx) {
+        let d = window.state.drones[idx];
+        if (d.battery >= 100) return;
+        if (window.state.money >= 50) {
+            window.state.money -= 50; d.battery = 100;
+            save(); render();
+        } else { notify("Не хватает денег!", 'system'); }
+    }
+
+    window.sellDrone = function(idx) {
+        if (window.state.drones.length <= 1) return notify("Нельзя продать последнего дрона!", 'system');
+        const d = window.state.drones[idx];
+        if (d.status === 'busy') return notify("Дрон сейчас в полете!", 'system');
+        const refund = Math.floor(d.price * 0.7);
+        window.state.money += refund;
+        window.state.drones.splice(idx, 1);
+        notify(`Дрон продан за ${refund}₮`, 'system');
+        save(); render();
+    }
+
+    window.openSkinMenu = function(idx) {
+        activeSkinDroneIdx = idx;
+        const drone = window.state.drones[idx];
+        document.getElementById('skin-modal-title').innerText = `СКИНЫ: ${drone.name}`;
+        const list = document.getElementById('skin-list');
+        list.innerHTML = SKINS_DB.map(s => {
+            const isOwned = window.state.ownedSkins.includes(s.color);
+            const isEquipped = drone.color === s.color;
+            return `<div class="skin-item"><div style="display:flex; align-items:center; gap:10px"><div style="width:25px; height:25px; background:${s.color}; border-radius:5px; border:1px solid #fff"></div><span>${s.name}</span></div>${isOwned ? `<button class="btn" style="width:100px; font-size:0.7rem; background:${isEquipped?'#374151':''}" onclick="equipSkin('${s.color}')" ${isEquipped?'disabled':''}>${isEquipped?'АКТИВЕН':'ВЫБРАТЬ'}</button>` : `<span style="font-size:0.7rem; opacity:0.5">НЕ КУПЛЕНО</span>`}</div>`;
+        }).join('');
+        document.getElementById('skin-modal').style.display = 'flex';
+    }
+
+    window.closeSkinMenu = function() {
+        document.getElementById('skin-modal').style.display = 'none';
+        activeSkinDroneIdx = null;
+    }
+
+    window.equipSkin = function(color) {
+        if (activeSkinDroneIdx !== null) {
+            window.state.drones[activeSkinDroneIdx].color = color;
+            save(); render(); closeSkinMenu();
+            notify("Скин применен!", 'system');
         }
+    }
 
-        // Переключение вкладок
-        function showPage(pageId) {
-            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-            
-            document.getElementById('page-' + pageId).classList.add('active');
-            document.getElementById('btn-' + pageId).classList.add('active');
+    window.buyItem = function(type, price) {
+        if (window.state.money < price) return notify("Не хватает денег!", 'system');
+        window.state.money -= price;
+        if (type === 'case') window.state.inventory.cases++;
+        if (type === 'key') window.state.inventory.keys++;
+        notify("Покупка прошла успешно", 'system');
+        save(); render();
+    }
+
+    window.openCase = function() {
+        if (window.state.inventory.cases <= 0 || window.state.inventory.keys <= 0) return notify("Нет кейсов или ключей!", 'system');
+        window.state.inventory.cases--; window.state.inventory.keys--;
+        const skinRoll = Math.random() * 100;
+        if (skinRoll < 20) {
+            const randomSkin = SKINS_DB[Math.floor(Math.random() * (SKINS_DB.length - 1))];
+            if (!window.state.ownedSkins.includes(randomSkin.color)) {
+                window.state.ownedSkins.push(randomSkin.color);
+                notify(`ВЫПАЛ СКИН: ${randomSkin.name}!`, 'system');
+            } else {
+                window.state.money += 1500;
+                notify(`Повтор: +1500₮`, 'system');
+            }
+        } else {
+            const roll = Math.random() * 100;
+            let win = roll > 80 ? DRONES_DB[Math.floor(Math.random() * 5) + 3] : DRONES_DB[Math.floor(Math.random() * 3)];
+            window.state.drones.push({ ...win, battery: 100, status: 'idle' });
+            notify(`ВЫПАЛ ДРОН: ${win.name}!`, 'system');
         }
+        save(); render();
+    }
 
-        // Смена темы
-        function toggleTheme() {
-            document.body.classList.toggle('dark');
+    window.openFinalChest = function() {
+        if (window.state.inventory.finalChests <= 0) return notify("Нет сундуков!", 'system');
+        window.state.inventory.finalChests--;
+        const finalColor = '#ff00ff';
+        if (!window.state.ownedSkins.includes(finalColor)) {
+            window.state.ownedSkins.push(finalColor);
+            const legacyData = getLegacyData();
+            legacyData.skins.push(finalColor);
+            saveLegacyData(legacyData);
+            notify("LEGACY СКИН: SINGULARITY!", 'system');
+        } else {
+            window.state.money += 500000;
+            notify("Повтор: +500к₮", 'income');
         }
+        save(); render();
+    }
 
-        // Публикация новости
-        function postNews() {
-            const text = document.getElementById('newsText').value;
-            const cat = document.getElementById('category').value;
-            if(!text) return;
+    window.switchHangar = function(type) {
+        document.getElementById('tab-drones').classList.toggle('active', type === 'drones');
+        document.getElementById('tab-cases').classList.toggle('active', type === 'cases');
+        document.getElementById('drones-area').style.display = type === 'drones' ? 'block' : 'none';
+        document.getElementById('cases-area').style.display = type === 'cases' ? 'block' : 'none';
+    }
 
-            db.ref('news').push({
-                text: text,
-                category: cat,
-                timestamp: Date.now()
-            });
-            document.getElementById('newsText').value = "";
-            tg.HapticFeedback.notificationOccurred('success');
-        }
+    window.buyDrone = function(id) {
+        const d = DRONES_DB.find(x => x.id === id);
+        if (window.state.money < d.price) return notify("Не хватает денег!", 'system');
+        window.state.money -= d.price;
+        window.state.drones.push({ ...d, battery: 100, status: 'idle' });
+        notify(`Дрон ${d.name} куплен!`, 'system');
+        save(); render();
+    }
 
-        // Получение данных
-        db.ref('news').on('value', (snapshot) => {
-            const feed = document.getElementById('newsFeed');
-            feed.innerHTML = "";
-            let items = [];
-            snapshot.forEach((child) => { items.push(child.val()); });
-            
-            items.reverse().forEach(data => {
-                feed.innerHTML += `
-                    <div class="news-card">
-                        <div class="category">${data.category}</div>
-                        <div class="text">${data.text}</div>
-                    </div>`;
-            });
-        });
-    </script>
+    window.buySkin = function(id) {
+        const s = SKINS_DB.find(x => x.id === id);
+        if (window.state.ownedSkins.includes(s.color)) return notify("Уже куплено!", 'system');
+        if (window.state.money < s.price) return notify("Не хватает денег!", 'system');
+        window.state.money -= s.price;
+        window.state.ownedSkins.push(s.color);
+        notify(`Скин ${s.name} куплен!`, 'system');
+        save(); render();
+    }
+
+    window.claimBp = function(idx) {
+        const item = BP_DB[idx];
+        if (window.state.lvl < item.lvl || window.state.claimedBp.includes(idx)) return;
+        if (item.type === 'money') window.state.money += item.reward;
+        if (item.type === 'drone') window.state.drones.push({ ...item.reward, battery: 100, status: 'idle' });
+        if (item.type === 'skin') window.state.ownedSkins.push(item.reward.color);
+        if (item.type === 'charge') window.state.drones.forEach(d => d.battery = 100);
+        if (item.type === 'final_chest') window.state.inventory.finalChests++;
+        window.state.claimedBp.push(idx); 
+        save(); render();
+    }
+
+    window.triggerSingularity = function() {
+        if (window.state.money < 1000000) return notify("Нужно 1кк ₮!", 'system');
+        window.state.money -= 1000000;
+        window.state.gameEnded = true;
+        save();
+        const end = document.createElement('div');
+        end.className = 'ending-screen';
+        end.innerHTML = '<div class="ending-text"><h1>СИНГУЛЯРНОСТЬ</h1><p>Сознание загружено. Legacy сохранено.</p></div>';
+        document.body.appendChild(end);
+        setTimeout(() => { localStorage.removeItem('drone_sim_v76'); location.reload(); }, 6000);
+    }
+
+    window.showPage = function(p) {
+        document.querySelectorAll('.page').forEach(x => x.classList.remove('active-page'));
+        document.getElementById('page-'+p).classList.add('active-page');
+        document.querySelectorAll('.nav-item').forEach(x => x.classList.remove('active'));
+        const navItems = document.querySelectorAll('.nav-item');
+        const map = {main:0, hangar:1, bp:2, shop:3};
+        navItems[map[p]].classList.add('active');
+    }
+
+    function getDroneSVG(id, color) { return `<svg width="40" height="40" viewBox="0 0 24 24" style="filter: drop-shadow(0 0 4px ${color})"><path d="${DRONE_SHAPES[id] || DRONE_SHAPES.d1}" fill="none" stroke="${color}" stroke-width="1.2" /></svg>`; }
+    function getCaseSVG(final = false) { return `<svg viewBox="0 0 24 24" width="40" height="40"><path d="M4,6 L20,6 L20,18 L4,18 Z" fill="#2c3e50" stroke="${final?'#ffd700':'#45b7d1'}" stroke-width="1.5"/></svg>`; }
+    function getKeySVG() { return `<svg viewBox="0 0 24 24" width="40" height="40"><circle cx="7" cy="12" r="4" fill="none" stroke="#45b7d1" stroke-width="2"/><path d="M11,12 L20,12" stroke="#45b7d1" stroke-width="2"/></svg>`; }
+
+    window.render = function() {
+        document.getElementById('money').innerText = Math.floor(window.state.money).toLocaleString();
+        document.getElementById('lvl-val').innerText = window.state.lvl;
+        document.getElementById('xp-val').innerText = window.state.xp;
+        document.getElementById('xp-fill').style.width = (window.state.xp / 500 * 100) + '%';
+
+        const activeLocs = window.state.drones.map(d => d.loc);
+        document.getElementById('orders-area').innerHTML = DRONES_DB.filter(d => activeLocs.includes(d.loc)).map((d, i) => `
+            <div class="card">
+                <div class="loc-tag">${d.loc}</div>
+                <button class="btn" onclick="sendOrder(${(i+1)*120},${10+(i*3)},${3000})">ЗАПУСТИТЬ ЗАКАЗ</button>
+            </div>`).join('');
+
+        document.getElementById('drones-area').innerHTML = window.state.drones.map((d, i) => `
+            <div class="card">
+                <div style="display:flex; gap:15px; align-items:center">
+                    <div class="drone-preview">${getDroneSVG(d.id, d.color)}</div>
+                    <div style="flex-grow:1">
+                        <b>${d.name}</b> (${Math.floor(d.battery)}%)
+                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px">
+                            <button class="btn btn-charge" onclick="chargeDrone(${i})" ${d.battery >= 100 ? 'disabled' : ''}>ЗАРЯД</button>
+                            <button class="btn btn-charge" style="background:#374151" onclick="openSkinMenu(${i})">СКИН</button>
+                        </div>
+                    </div>
+                </div>
+            </div>`).join('');
+
+        document.getElementById('cases-area').innerHTML = `
+            <div class="card"><b>Кейсы: ${window.state.inventory.cases} | Ключи: ${window.state.inventory.keys}</b>
+            <button class="btn" onclick="openCase()">ОТКРЫТЬ КЕЙС</button></div>
+            <div class="card" style="border-color:var(--gold)"><b>Final Chests: ${window.state.inventory.finalChests}</b>
+            <button class="btn" style="background:var(--gold)" onclick="openFinalChest()">ОТКРЫТЬ ФИНАЛ</button></div>`;
+
+        document.getElementById('shop-cases').innerHTML = `<div class="card">${getCaseSVG()}<button class="btn" onclick="buyItem('case', 5000)">5000₮</button></div><div class="card">${getKeySVG()}<button class="btn" onclick="buyItem('key', 3000)">3000₮</button></div>`;
+        document.getElementById('bp-track').innerHTML = BP_DB.map((item, i) => `<div class="bp-slot ${window.state.lvl >= item.lvl ? 'unlocked' : ''}"><div>LVL ${item.lvl}</div><button class="btn" onclick="claimBp(${i})" ${window.state.claimedBp.includes(i) || window.state.lvl < item.lvl ? 'disabled' : ''}>${window.state.claimedBp.includes(i) ? 'ВЗЯТО' : 'ЗАБРАТЬ'}</button></div>`).join('');
+        document.getElementById('shop-drones').innerHTML = DRONES_DB.filter(d => d.price > 0).map(d => `<div class="card"><b>${d.name}</b><button class="btn" onclick="buyDrone('${d.id}')">${d.price}₮</button></div>`).join('');
+        document.getElementById('shop-skins').innerHTML = SKINS_DB.filter(s => s.price > 0).map(s => `<div class="card"><div style="background:${s.color}; height:5px;"></div><button class="btn" onclick="buySkin('${s.id}')">${window.state.ownedSkins.includes(s.color)?'КУПЛЕНО':s.price+'₮'}</button></div>`).join('');
+        
+        document.getElementById('final-shop').innerHTML = `<div class="card" style="border-color:var(--gold)"><b>СИНГУЛЯРНОСТЬ</b><button class="btn" style="background:var(--gold)" onclick="triggerSingularity()">1.000.000₮</button></div>`;
+    }
+
+    // Start
+    load();
+    setInterval(() => {
+        window.state.drones.forEach(d => { if(d.status==='idle' && d.battery<100) d.battery=Math.min(100, d.battery+1.8); });
+        render();
+    }, 4000);
+</script>
 </body>
 </html>
