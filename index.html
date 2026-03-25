@@ -59,7 +59,7 @@
 
         /* Админка */
         .admin-box { margin-top: 20px; padding-top: 20px; border-top: 2px dashed var(--gold); }
-        .admin-input { width: 100%; background: #000; border: 1px solid #333; color: #fff; padding: 8px; margin-bottom: 10px; border-radius: 5px; }
+        .admin-input { width: 100%; background: #000; border: 1px solid #333; color: #fff; padding: 8px; margin-bottom: 10px; border-radius: 5px; box-sizing: border-box; }
 
         .ending-screen { position:fixed; top:0; left:0; width:100%; height:100%; background:white; color:black; z-index:3000; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; animation: whiteout 5s ease-in forwards; }
         .ending-text { opacity: 0; animation: fadeInText 2s 2s forwards; font-family: serif; }
@@ -206,7 +206,7 @@
 
     // ЗАЩИТА: Только Telegram
     if (!tg.initDataUnsafe || !tg.initDataUnsafe.user) {
-        document.body.innerHTML = "<div style='display:flex; height:100vh; align-items:center; justify-content:center; text-align:center; color:white; padding:20px;'><h1>ОШИБКА ДОСТУПА</h1><p>Игра доступна только через официальный Telegram бот.</p></div>";
+        document.body.innerHTML = "<div style='display:flex; height:100vh; align-items:center; justify-content:center; text-align:center; color:white; padding:20px; flex-direction:column;'><h1>ОШИБКА ДОСТУПА</h1><p>Игра доступна только через официальный Telegram бот.</p></div>";
         throw new Error("Game blocked: Not in Telegram");
     }
 
@@ -214,7 +214,47 @@
     const userId = user.id.toString();
     const adminId = "6086871004";
 
-    // Legacy Data
+    // DB Helpers
+    window.save = async function() {
+        try { await set(ref(db, 'users/' + userId), window.state); } catch (e) { console.error("Save error", e); }
+    }
+
+    window.load = async function() {
+        try {
+            const snap = await get(ref(db, 'users/' + userId));
+            if (snap.exists()) {
+                window.state = snap.val();
+                const legacy = getLegacyData();
+                legacy.skins.forEach(s => { if(!window.state.ownedSkins.includes(s)) window.state.ownedSkins.push(s); });
+                render();
+            }
+        } catch (e) { console.error("Load error", e); }
+    }
+
+    // ADMIN CONSOLE
+    window.adminGive = async function() {
+        const target = document.getElementById('adm-target-id').value;
+        const amount = parseInt(document.getElementById('adm-amount').value);
+        const type = document.getElementById('adm-type').value;
+
+        if (!target || isNaN(amount)) return notify("Заполните данные!", "system");
+
+        try {
+            const targetRef = ref(db, 'users/' + target);
+            const snap = await get(targetRef);
+            if (!snap.exists()) return notify("Игрок не найден!", "system");
+
+            let data = snap.val();
+            if (type === 'money') data.money += amount;
+            if (type === 'cases') data.inventory.cases += amount;
+            if (type === 'keys') data.inventory.keys += amount;
+
+            await update(targetRef, data);
+            notify("Успешно выдано!", "system");
+        } catch (e) { notify("Ошибка базы данных", "system"); }
+    }
+
+    // Static Data
     const getLegacyData = () => JSON.parse(localStorage.getItem('drone_legacy_v1')) || { skins: [] };
     const saveLegacyData = (data) => localStorage.setItem('drone_legacy_v1', JSON.stringify(data));
 
@@ -264,6 +304,7 @@
         BP_DB.push({ lvl: i, type, reward: val, label });
     }
 
+    // State & Engine
     window.state = {
         money: 500, xp: 0, lvl: 1,
         drones: [{ ...DRONES_DB[0], battery: 100, status: 'idle' }],
@@ -273,51 +314,6 @@
         inventory: { cases: 0, keys: 0, finalChests: 0 },
         gameEnded: false
     };
-
-    // Database functions
-    async function save() {
-        try {
-            await set(ref(db, 'users/' + userId), window.state);
-        } catch (e) { console.error("Save error", e); }
-    }
-
-    async function load() {
-        try {
-            const snap = await get(ref(db, 'users/' + userId));
-            if (snap.exists()) {
-                window.state = snap.val();
-                const legacy = getLegacyData();
-                legacy.skins.forEach(s => { if(!window.state.ownedSkins.includes(s)) window.state.ownedSkins.push(s); });
-                render();
-            }
-        } catch (e) { console.error("Load error", e); }
-    }
-
-    // ADMIN FUNCTIONS
-    window.adminGive = async function() {
-        const target = document.getElementById('adm-target-id').value;
-        const amount = parseInt(document.getElementById('adm-amount').value);
-        const type = document.getElementById('adm-type').value;
-
-        if (!target || isNaN(amount)) return notify("Заполните данные!", "system");
-
-        try {
-            const targetRef = ref(db, 'users/' + target);
-            const snap = await get(targetRef);
-            if (!snap.exists()) return notify("Игрок не найден в базе!", "system");
-
-            let data = snap.val();
-            if (type === 'money') data.money += amount;
-            if (type === 'cases') data.inventory.cases += amount;
-            if (type === 'keys') data.inventory.keys += amount;
-
-            await update(targetRef, data);
-            notify("Выполнено успешно!", "system");
-        } catch (e) { notify("Ошибка базы данных", "system"); }
-    }
-
-    // Game Logic
-    let activeSkinDroneIdx = null;
 
     window.notify = function(text, type) {
         if (type === 'income' && !window.state.settings.income) return;
@@ -391,6 +387,7 @@
         save(); render();
     }
 
+    let activeSkinDroneIdx = null;
     window.openSkinMenu = function(idx) {
         activeSkinDroneIdx = idx;
         const drone = window.state.drones[idx];
@@ -404,10 +401,7 @@
         document.getElementById('skin-modal').style.display = 'flex';
     }
 
-    window.closeSkinMenu = function() {
-        document.getElementById('skin-modal').style.display = 'none';
-        activeSkinDroneIdx = null;
-    }
+    window.closeSkinMenu = function() { document.getElementById('skin-modal').style.display = 'none'; activeSkinDroneIdx = null; }
 
     window.equipSkin = function(color) {
         if (activeSkinDroneIdx !== null) {
@@ -435,10 +429,7 @@
             if (!window.state.ownedSkins.includes(randomSkin.color)) {
                 window.state.ownedSkins.push(randomSkin.color);
                 notify(`ВЫПАЛ СКИН: ${randomSkin.name}!`, 'system');
-            } else {
-                window.state.money += 1500;
-                notify(`Повтор: +1500₮`, 'system');
-            }
+            } else { window.state.money += 1500; notify(`Повтор: +1500₮`, 'system'); }
         } else {
             const roll = Math.random() * 100;
             let win = roll > 80 ? DRONES_DB[Math.floor(Math.random() * 5) + 3] : DRONES_DB[Math.floor(Math.random() * 3)];
@@ -454,14 +445,9 @@
         const finalColor = '#ff00ff';
         if (!window.state.ownedSkins.includes(finalColor)) {
             window.state.ownedSkins.push(finalColor);
-            const legacyData = getLegacyData();
-            legacyData.skins.push(finalColor);
-            saveLegacyData(legacyData);
+            const legacyData = getLegacyData(); legacyData.skins.push(finalColor); saveLegacyData(legacyData);
             notify("LEGACY СКИН: SINGULARITY!", 'system');
-        } else {
-            window.state.money += 500000;
-            notify("Повтор: +500к₮", 'income');
-        }
+        } else { window.state.money += 500000; notify("Повтор: +500к₮", 'income'); }
         save(); render();
     }
 
@@ -499,14 +485,12 @@
         if (item.type === 'skin') window.state.ownedSkins.push(item.reward.color);
         if (item.type === 'charge') window.state.drones.forEach(d => d.battery = 100);
         if (item.type === 'final_chest') window.state.inventory.finalChests++;
-        window.state.claimedBp.push(idx); 
-        save(); render();
+        window.state.claimedBp.push(idx); save(); render();
     }
 
     window.triggerSingularity = function() {
         if (window.state.money < 1000000) return notify("Нужно 1кк ₮!", 'system');
-        window.state.money -= 1000000;
-        window.state.gameEnded = true;
+        window.state.money -= 1000000; window.state.gameEnded = true;
         save();
         const end = document.createElement('div');
         end.className = 'ending-screen';
@@ -561,15 +545,14 @@
             <div class="card" style="border-color:var(--gold)"><b>Final Chests: ${window.state.inventory.finalChests}</b>
             <button class="btn" style="background:var(--gold)" onclick="openFinalChest()">ОТКРЫТЬ ФИНАЛ</button></div>`;
 
-        document.getElementById('shop-cases').innerHTML = `<div class="card">${getCaseSVG()}<button class="btn" onclick="buyItem('case', 5000)">5000₮</button></div><div class="card">${getKeySVG()}<button class="btn" onclick="buyItem('key', 3000)">3000₮</button></div>`;
+        document.getElementById('shop-cases').innerHTML = `<div class="card" style="text-align:center;">${getCaseSVG()}<button class="btn" onclick="buyItem('case', 5000)">5000₮</button></div><div class="card" style="text-align:center;">${getKeySVG()}<button class="btn" onclick="buyItem('key', 3000)">3000₮</button></div>`;
         document.getElementById('bp-track').innerHTML = BP_DB.map((item, i) => `<div class="bp-slot ${window.state.lvl >= item.lvl ? 'unlocked' : ''}"><div>LVL ${item.lvl}</div><button class="btn" onclick="claimBp(${i})" ${window.state.claimedBp.includes(i) || window.state.lvl < item.lvl ? 'disabled' : ''}>${window.state.claimedBp.includes(i) ? 'ВЗЯТО' : 'ЗАБРАТЬ'}</button></div>`).join('');
         document.getElementById('shop-drones').innerHTML = DRONES_DB.filter(d => d.price > 0).map(d => `<div class="card"><b>${d.name}</b><button class="btn" onclick="buyDrone('${d.id}')">${d.price}₮</button></div>`).join('');
-        document.getElementById('shop-skins').innerHTML = SKINS_DB.filter(s => s.price > 0).map(s => `<div class="card"><div style="background:${s.color}; height:5px;"></div><button class="btn" onclick="buySkin('${s.id}')">${window.state.ownedSkins.includes(s.color)?'КУПЛЕНО':s.price+'₮'}</button></div>`).join('');
-        
+        document.getElementById('shop-skins').innerHTML = SKINS_DB.filter(s => s.price > 0).map(s => `<div class="card"><div style="background:${s.color}; height:5px; margin-bottom:5px;"></div><button class="btn" onclick="buySkin('${s.id}')">${window.state.ownedSkins.includes(s.color)?'КУПЛЕНО':s.price+'₮'}</button></div>`).join('');
         document.getElementById('final-shop').innerHTML = `<div class="card" style="border-color:var(--gold)"><b>СИНГУЛЯРНОСТЬ</b><button class="btn" style="background:var(--gold)" onclick="triggerSingularity()">1.000.000₮</button></div>`;
     }
 
-    // Start
+    // Init
     load();
     setInterval(() => {
         window.state.drones.forEach(d => { if(d.status==='idle' && d.battery<100) d.battery=Math.min(100, d.battery+1.8); });
