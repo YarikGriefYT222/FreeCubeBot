@@ -56,6 +56,14 @@
         .drone-preview, .item-preview { width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.3); border-radius: 10px; }
         .skin-item { display: flex; justify-content: space-between; align-items: center; padding: 12px; border: 1px solid #30363d; border-radius: 10px; margin-bottom: 8px; }
 
+        /* --- НОВЫЕ СТИЛИ ДЛЯ РУЛЕТКИ --- */
+        .roulette-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.98); z-index:2000; flex-direction:column; justify-content:center; align-items:center; }
+        .roulette-window { position:relative; width:310px; height:130px; border:2px solid var(--primary); border-radius:15px; overflow:hidden; background:#0d1117; box-shadow: 0 0 20px rgba(78,204,163,0.3); }
+        .roulette-track { display:flex; position:absolute; left:0; top:15px; transition: transform 5s cubic-bezier(0.1, 0, 0.05, 1); will-change: transform; }
+        .roulette-item { min-width: 100px; height: 100px; margin: 0 5px; background: #161b22; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; border-bottom: 3px solid #30363d; }
+        .roulette-pointer { position:absolute; left:50%; top:0; transform:translateX(-50%); width:3px; height:100%; background:var(--accent); z-index:10; box-shadow: 0 0 10px var(--accent); }
+        .win-screen { display:none; text-align:center; animation: slideUp 0.5s ease; margin-top:20px; }
+
         /* ЭФФЕКТ ФИНАЛА */
         .ending-screen { position:fixed; top:0; left:0; width:100%; height:100%; background:white; color:black; z-index:3000; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; animation: whiteout 5s ease-in forwards; }
         .ending-text { opacity: 0; animation: fadeInText 2s 2s forwards; font-family: serif; }
@@ -66,6 +74,19 @@
 <body>
 
 <div id="toast-container"></div>
+
+<div id="roulette-page" class="roulette-overlay">
+    <h2 id="roulette-title" style="color:var(--primary); margin-bottom:20px; letter-spacing:2px">ОТКРЫТИЕ...</h2>
+    <div class="roulette-window">
+        <div class="roulette-pointer"></div>
+        <div id="roulette-track" class="roulette-track"></div>
+    </div>
+    <div id="win-screen" class="win-screen">
+        <div id="win-icon" style="margin-bottom:15px"></div>
+        <h3 id="win-name" style="margin:0">ПРЕДМЕТ</h3>
+        <button class="btn" style="margin-top:25px; width:180px" onclick="closeRoulette()">В АНГАР</button>
+    </div>
+</div>
 
 <div id="settings-modal" class="modal" onclick="toggleSettings()">
     <div class="modal-content" onclick="event.stopPropagation()">
@@ -165,7 +186,7 @@
 </nav>
 
 <script>
-    // --- LEGACY СИСТЕМА (ХРАНЕНИЕ ВНЕ ИГРОВОГО СОСТОЯНИЯ) ---
+    // --- LEGACY СИСТЕМА ---
     const getLegacyData = () => JSON.parse(localStorage.getItem('drone_legacy_v1')) || { skins: [] };
     const saveLegacyData = (data) => localStorage.setItem('drone_legacy_v1', JSON.stringify(data));
 
@@ -202,7 +223,7 @@
         { id: 's3', name: 'Ocean', price: 8000, color: '#0077ff' },
         { id: 's4', name: 'Royal', price: 20000, color: '#ffd700' },
         { id: 's5', name: 'Void', price: 100000, color: '#111111' },
-        { id: 's_final', name: 'SINGULARITY', price: 0, color: '#ff00ff' } // Скин финала
+        { id: 's_final', name: 'SINGULARITY', price: 0, color: '#ff00ff' }
     ];
 
     const BP_DB = [];
@@ -225,7 +246,6 @@
         gameEnded: false
     };
 
-    // Применяем Legacy данные при запуске
     const legacy = getLegacyData();
     legacy.skins.forEach(s => { if(!state.ownedSkins.includes(s)) state.ownedSkins.push(s); });
 
@@ -349,32 +369,103 @@
         save(); render();
     }
 
+    // --- ЛОГИКА РУЛЕТКИ ---
+
+    function getRollItem() {
+        // Шансы такие же как в старой функции
+        const skinRoll = Math.random() * 100;
+        if (skinRoll < 20) {
+            const skin = SKINS_DB[Math.floor(Math.random() * (SKINS_DB.length - 1))];
+            return { type: 'skin', data: skin, color: skin.color, name: skin.name };
+        } else {
+            const roll = Math.random() * 100;
+            let drone;
+            if (roll > 95) drone = DRONES_DB[Math.floor(Math.random() * 3) + 7];
+            else if (roll > 75) drone = DRONES_DB[Math.floor(Math.random() * 4) + 3];
+            else drone = DRONES_DB[Math.floor(Math.random() * 3)];
+            return { type: 'drone', data: drone, color: drone.color, name: drone.name };
+        }
+    }
+
     function openCase() {
         if (state.inventory.cases <= 0) return notify("У вас нет кейсов!", 'system');
         if (state.inventory.keys <= 0) return notify("Нет ключей!", 'system');
+        
         state.inventory.cases--;
         state.inventory.keys--;
-        const skinRoll = Math.random() * 100;
-        if (skinRoll < 20) {
-            const randomSkin = SKINS_DB[Math.floor(Math.random() * (SKINS_DB.length - 1))]; // Без финального
-            if (!state.ownedSkins.includes(randomSkin.color)) {
-                state.ownedSkins.push(randomSkin.color);
-                notify(`ВЫПАЛ СКИН: ${randomSkin.name}!`, 'system');
-            } else {
-                state.money += 1500;
-                notify(`Повторный скин: +1500₮ компенсации`, 'system');
-            }
-        } else {
-            const roll = Math.random() * 100;
-            let win;
-            if (roll > 95) win = DRONES_DB[Math.floor(Math.random() * 3) + 7];
-            else if (roll > 75) win = DRONES_DB[Math.floor(Math.random() * 4) + 3];
-            else win = DRONES_DB[Math.floor(Math.random() * 3)];
-            state.drones.push({ ...win, battery: 100, status: 'idle' });
-            notify(`ВЫПАЛ ДРОН: ${win.name}!`, 'system');
-        }
         save(); render();
+
+        const track = document.getElementById('roulette-track');
+        const page = document.getElementById('roulette-page');
+        const winScreen = document.getElementById('win-screen');
+        
+        // Сброс состояния
+        track.style.transition = 'none';
+        track.style.transform = 'translateX(0)';
+        winScreen.style.display = 'none';
+        document.getElementById('roulette-title').innerText = "ОТКРЫТИЕ...";
+        page.style.display = 'flex';
+
+        const itemCount = 45;
+        const itemWidth = 110;
+        track.innerHTML = '';
+        
+        let rollItems = [];
+        for(let i=0; i<itemCount; i++) {
+            const item = getRollItem();
+            rollItems.push(item);
+            const el = document.createElement('div');
+            el.className = 'roulette-item';
+            el.style.borderBottomColor = item.color;
+            
+            const icon = item.type === 'drone' ? getDroneSVG(item.data.id, item.color) : `<div style="width:30px; height:30px; background:${item.color}; border-radius:5px; border:1px solid #fff"></div>`;
+            el.innerHTML = `${icon}<div style="font-size:0.5rem; margin-top:5px; color:#aaa">${item.name}</div>`;
+            track.appendChild(el);
+        }
+
+        // Выбираем победителя (предмет под маркером в конце)
+        const winnerIndex = itemCount - 5;
+        const winner = rollItems[winnerIndex];
+
+        // Запуск анимации
+        setTimeout(() => {
+            const center = 155; // Центр окна рулетки
+            const targetPos = (winnerIndex * itemWidth) + (itemWidth/2) - center;
+            track.style.transition = 'transform 5s cubic-bezier(0.1, 0, 0.05, 1)';
+            track.style.transform = `translateX(-${targetPos}px)`;
+        }, 50);
+
+        // Показ результата
+        setTimeout(() => {
+            document.getElementById('roulette-title').innerText = "ВЫПАЛО:";
+            winScreen.style.display = 'block';
+            document.getElementById('win-name').innerText = winner.name;
+            document.getElementById('win-icon').innerHTML = winner.type === 'drone' ? getDroneSVG(winner.data.id, winner.color) : `<div style="width:60px; height:60px; background:${winner.color}; border-radius:10px; border:2px solid #fff; margin:0 auto"></div>`;
+            
+            // Начисление награды
+            if (winner.type === 'skin') {
+                if (!state.ownedSkins.includes(winner.color)) {
+                    state.ownedSkins.push(winner.color);
+                    notify(`НОВЫЙ СКИН: ${winner.name}`, 'system');
+                } else {
+                    state.money += 1500;
+                    notify(`Повтор: +1500₮`, 'income');
+                }
+            } else {
+                state.drones.push({ ...winner.data, battery: 100, status: 'idle' });
+                notify(`НОВЫЙ ДРОН: ${winner.name}`, 'system');
+            }
+            save(); render();
+        }, 5500);
     }
+
+    function closeRoulette() {
+        document.getElementById('roulette-page').style.display = 'none';
+        showPage('hangar'); // Переход в ангар
+        switchHangar('drones');
+    }
+
+    // --- КОНЕЦ ЛОГИКИ РУЛЕТКИ ---
 
     function openFinalChest() {
         if (state.inventory.finalChests <= 0) return notify("Нет финальных сундуков!", 'system');
@@ -382,7 +473,6 @@
         const finalColor = '#ff00ff';
         if (!state.ownedSkins.includes(finalColor)) {
             state.ownedSkins.push(finalColor);
-            // Сохраняем в Legacy
             const legacyData = getLegacyData();
             legacyData.skins.push(finalColor);
             saveLegacyData(legacyData);
@@ -392,6 +482,7 @@
             notify("Повтор: +500.000₮", 'income');
         }
         save(); render();
+        showPage('hangar');
     }
 
     function switchHangar(type) {
@@ -438,13 +529,11 @@
         const item = BP_DB[idx];
         if (state.lvl < item.lvl) return notify("Не хватает XP!", 'system');
         if (state.claimedBp.includes(idx)) return notify("Уже получено!", 'system');
-        
         if (item.type === 'money') state.money += item.reward;
         if (item.type === 'drone') state.drones.push({ ...item.reward, battery: 100, status: 'idle' });
         if (item.type === 'skin') { if(!state.ownedSkins.includes(item.reward.color)) state.ownedSkins.push(item.reward.color); }
         if (item.type === 'charge') state.drones.forEach(d => d.battery = 100);
         if (item.type === 'final_chest') state.inventory.finalChests++;
-
         state.claimedBp.push(idx); 
         notify(`Награда LVL ${item.lvl} получена!`, 'system');
         save(); render();
@@ -453,29 +542,14 @@
     function triggerSingularity() {
         const cost = 1000000;
         if (state.money < cost) return notify("Требуется 1.000.000₮ для Сингулярности!", 'system');
-        
         state.money -= cost;
         state.gameEnded = true;
         save();
-
         const end = document.createElement('div');
         end.className = 'ending-screen';
-        end.innerHTML = `
-            <div class="ending-text">
-                <h1 style="letter-spacing:12px; margin-bottom:10px;">СИНГУЛЯРНОСТЬ</h1>
-                <p style="font-style:italic; color:#666;">Вечные данные сохранены</p>
-                <div style="margin-top:40px; font-size:1.1rem; line-height:1.6">
-                    Ваше сознание загружено в сеть.<br>
-                    Legacy-скины будут доступны в новой итерации.
-                </div>
-            </div>
-        `;
+        end.innerHTML = `<div class="ending-text"><h1 style="letter-spacing:12px; margin-bottom:10px;">СИНГУЛЯРНОСТЬ</h1><p style="font-style:italic; color:#666;">Вечные данные сохранены</p><div style="margin-top:40px; font-size:1.1rem; line-height:1.6">Ваше сознание загружено в сеть.<br>Legacy-скины будут доступны в новой итерации.</div></div>`;
         document.body.appendChild(end);
-
-        setTimeout(() => {
-            localStorage.removeItem('drone_sim_v76');
-            location.reload();
-        }, 6000);
+        setTimeout(() => { localStorage.removeItem('drone_sim_v76'); location.reload(); }, 6000);
     }
 
     function showPage(p) {
@@ -549,14 +623,10 @@
             <div class="card" style="border-color:var(--gold); background: linear-gradient(45deg, #161b22, #1a202c);">
                 <div style="display:flex; align-items:center; gap:15px">
                     <div class="item-preview" style="border: 1px solid var(--gold); font-size:1.5rem">✨</div>
-                    <div style="flex-grow:1">
-                        <b style="color:var(--gold)">МОДУЛЬ СИНГУЛЯРНОСТИ</b><br>
-                        <small>Legacy-скины сохранятся</small>
-                    </div>
+                    <div style="flex-grow:1"><b style="color:var(--gold)">МОДУЛЬ СИНГУЛЯРНОСТИ</b><br><small>Legacy-скины сохранятся</small></div>
                 </div>
                 <button class="btn" style="margin-top:10px; background:var(--gold)" onclick="triggerSingularity()">АКТИВИРОВАТЬ (1.000.000₮)</button>
-            </div>
-        `;
+            </div>`;
     }
 
     setInterval(() => {
